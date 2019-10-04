@@ -1,0 +1,12 @@
+breakfast
+location
+beach
+bathroom
+bedroom
+internet
+pet
+parking
+air
+coffee
+transportation
+cleaning

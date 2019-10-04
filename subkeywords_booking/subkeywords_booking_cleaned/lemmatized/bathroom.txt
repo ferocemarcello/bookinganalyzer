@@ -1,0 +1,19 @@
+bathroom
+bath
+bathing
+tub
+bathing_tub
+shower
+washbowl
+lavabo
+bathub
+bathubs
+window
+mirror
+toilet
+w.c.
+W.C.
+w. c.
+W. C.
+wc
+wcs

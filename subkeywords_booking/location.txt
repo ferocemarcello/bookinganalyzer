@@ -1,0 +1,13 @@
+﻿location
+hilly
+view
+panorama
+landscape
+sunrise
+sunset
+orientation
+neighbourhood
+position
+neighbour
+region
+area

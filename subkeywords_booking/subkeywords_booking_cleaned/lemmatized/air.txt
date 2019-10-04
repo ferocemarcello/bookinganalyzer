@@ -1,0 +1,17 @@
+air
+hot
+warm
+cold
+condit
+conditioned
+breez
+breeze
+fresh
+dri
+dry
+ventil
+ventilate
+chill
+icey
+mild
+humid

@@ -1,0 +1,12 @@
+﻿shuttle
+bus
+plane
+flight
+airport
+tram
+car
+road
+highway
+transport
+metro
+underground

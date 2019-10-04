@@ -1,0 +1,14 @@
+﻿bedroom
+sleep
+bed
+table
+cover
+duvet
+sheet
+blanket
+pillow
+wardrobe
+lamp
+moquette
+floor
+

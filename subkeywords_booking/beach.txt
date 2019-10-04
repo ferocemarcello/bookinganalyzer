@@ -1,0 +1,6 @@
+﻿beach
+sand
+rock
+stone
+coast
+shore
