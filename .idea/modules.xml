@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/../explore_booking_into_reviews/.idea/explore_booking_into_reviews.iml" filepath="$PROJECT_DIR$/../explore_booking_into_reviews/.idea/explore_booking_into_reviews.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/bookinganalyzer.iml" filepath="$PROJECT_DIR$/.idea/bookinganalyzer.iml" />
     </modules>
   </component>
 </project>
