@@ -1,8 +1,12 @@
+import time
+
 from nltk.tokenize import sent_tokenize, word_tokenize
 import nltk
 
 from db import db_connection, db_operator
 import csv
+import multiprocessing as mp
+
 import numpy
 '''import spacy
 from spacy_langdetect import LanguageDetector
@@ -24,7 +28,7 @@ from googletrans import Translator'''
     return {'language':detection.lang, 'score':detection.confidence}'''
 
 punctuation_list_space=[' ',',','.',';',':','!','"','?','-','_','(',')',"'"]
-
+identifier = LanguageIdentifier.from_modelstring(model, norm_probs=True)
 def chunkIt(seq, num):
     avg = len(seq) / float(num)
     out = []
@@ -35,9 +39,37 @@ def chunkIt(seq, num):
         last += avg
 
     return out
-def thread_function(listofsents):
-    print(str(len(listofsents)))
-    print("cacca")
+def thread_function(threadnumber,sentencelist):
+    toaddsents=[]
+    print('len is '+str(len(sentencelist))+' for thread '+str(threadnumber))
+    i=0
+    for row in sentencelist:
+        i+=1
+        if i%100==0:
+            print('i: '+str(i)+' for thread '+str(threadnumber))
+        sent=row[2]
+        lan = identifier.classify(sent)[0]
+        acc = identifier.classify(sent)[1]
+        sentan = TextBlob(sent)
+        if lan == 'en' and acc >= 0.9 and sentan.polarity > 0.4 and sentan.subjectivity > 0.65:
+            sent = (sentan.correct()).string
+            sent = sent[0].upper() + sent[0 + 1:]
+            sent = sent.replace(' i ', ' I ')
+
+            toaddsents.append([row[0], row[1], sent])
+    print(str(len(toaddsents)))
+
+def thread_function_row_only(row):
+    sent = row[2]
+    lan = identifier.classify(sent)[0]
+    '''acc = identifier.classify(sent)[1]'''
+    sentan = TextBlob(sent)
+    if lan == 'en' '''and acc >= 0.9 and sentan.polarity > 0.4 and sentan.subjectivity > 0.65''':
+        sent = (sentan.correct()).string
+        '''sent = sent[0].upper() + sent[0 + 1:]
+        sent = sent.replace(' i ', ' I ')'''
+        return [row[0],row[1],sent]
+    return
 
 def do(originfile):
     db = db_connection()
@@ -54,7 +86,7 @@ def do(originfile):
     f.close()
     #nlp.add_pipe(LanguageDetector(), name="language_detector", last=True)
     #nlp.add_pipe(LanguageDetector(language_detection_function=custom_detection_function), name="language_detector",last=True)
-    identifier = LanguageIdentifier.from_modelstring(model, norm_probs=True)
+    print("Number of processors: ", mp.cpu_count())
     for emotion in ['Good', 'Bad']:
         print("begin " + emotion)
         for keyword in keywords.keys():
@@ -88,7 +120,7 @@ def do(originfile):
                 if i % 100000 == 0:
                     print(str(i))
                 allsents.append(row)
-                if i==500000:break
+                if i%1000000==0:break
                 #sent=row[2]
                 '''lan = identifier.classify(sent)[0]
                 acc = identifier.classify(sent)[1]
@@ -111,18 +143,22 @@ def do(originfile):
                         # sentan.sentiment_assessments
                         if sentan.polarity > 0.4 and sentan.subjectivity > 0.65:
                             toaddsents.append([row[0],row[1],sent])'''
-                #toaddsents.append([row[0],row[1],sent])
-            try:
-                #l = chunkIt(allsents,8)
-                ths = []
-                for i in range(8):
-                    x = threading.Thread(target=thread_function, args=([0,0,0],))
-                    ths.append(x)
-                    x.start()
-                for i in range(8):
-                    ths[i].join()
-            except Exception as e:
-                print(e)
+            csv_file.close()
+            pool = mp.Pool(mp.cpu_count()*2)
+            results=pool.map_async(thread_function_row_only, [row for row in allsents]).get()
+            pool.close()
+            pool.join()
+            results=[r for r in results if r!=None]
+            '''l = chunkIt(allsents,2)
+            ths = []
+            threads = list()
+            for index in range(2):
+                li=l[index]
+                x = threading.Thread(target=thread_function, args=(index,li,))
+                threads.append(x)
+                x.start()
+            for index,thread in enumerate(threads):
+                thread.join()'''
             '''for rew in fields:
                 i+=1
                 if i%10000==0:
@@ -161,12 +197,11 @@ def do(originfile):
                 tokenized_text = sent_tokenize(text)
                 for sent in tokenized_text:
                     toaddsents.append([rew[0], rew[1], sent])'''
-            csv_file.close()
             print("start writing sentences")
-            print("num sents: " + str(len(toaddsents)))
+            print("num sents: " + str(len(results)))
             i = 0
             csv_file = open('csvs/' + keyword + '_' + emotion.lower() + '.csv', mode='a', encoding="utf8",newline='\n')
-            for sen in toaddsents:
+            for sen in results:
                 i += 1
                 if i % 100000 == 0:
                     print(str(i))
