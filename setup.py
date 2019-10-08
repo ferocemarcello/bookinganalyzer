@@ -1,6 +1,5 @@
 from distutils.core import setup
 from Cython.Build import cythonize
 
-setup(
-    ext_modules = cythonize("csvwriter.pyx")
-)
+setup(name='csvwriter_app',
+      ext_modules=cythonize("csvwritercy.py"))

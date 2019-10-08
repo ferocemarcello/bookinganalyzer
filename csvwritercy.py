@@ -1,7 +1,4 @@
 import time
-
-from nltk import word_tokenize
-
 from db import db_connection, db_operator
 import csv
 import multiprocessing as mp
@@ -15,6 +12,7 @@ import sys
 '''import grammar_check
 from gingerit.gingerit import GingerIt'''
 from langid.langid import LanguageIdentifier, model
+import pyximport; pyximport.install()
 '''from spacy.tokens import Doc, Span
 from googletrans import Translator'''
 
@@ -43,7 +41,7 @@ def thread_function(threadnumber,sentencelist):
     i=0
     for row in sentencelist:
         i+=1
-        if i%100000==0:
+        if i%100==0:
             print('i: '+str(i)+' for thread '+str(threadnumber))
         sent=row[2]
         lan = identifier.classify(sent)[0]
@@ -64,29 +62,18 @@ def thread_function_row_only(row):
     sentan = TextBlob(sent)
     with counter.get_lock():
         counter.value += 1
-    if counter.value%100000==0:
+    if counter.value%100==0:
         print('review '+str(counter.value))
-
-    words = word_tokenize(sent)
-    skipsentence = True
-    for word in words:
-        if word.lower() in subks._getvalue():
-            skipsentence = False
-            break
-    if not skipsentence:
-        if lan == 'en' and acc >= 0.9 and sentan.polarity > 0.4 and sentan.subjectivity > 0.65:
-            return [row[0], row[1], sent]
-    #if lan == 'en' and acc >= 0.9 and sentan.polarity > 0.4 and sentan.subjectivity > 0.65:
-    # sent = (sentan.correct()).string
+    if lan == 'en':
+        #if lan == 'en' and acc >= 0.9 and sentan.polarity > 0.4 and sentan.subjectivity > 0.65:
+        sent = (sentan.correct()).string
         '''sent = sent[0].upper() + sent[0 + 1:]
         sent = sent.replace(' i ', ' I ')'''
+        return [row[0],row[1],sent]
     return
-
-def init_globals(cnt,subkeywords):
+def init_globals(cnt):
     global counter
     counter = cnt
-    global subks
-    subks=subkeywords
 
 def do(originfile):
     start_time = time.time()
@@ -113,7 +100,6 @@ def do(originfile):
             f.close()
             liketext = 'SELECT ReviewID, Country, ' + emotion + ' from masterthesis.reviews where '
             '''
-            global subks
             subkeywords = keywords[keyword]
             '''for subkey in subkeywords:
                 liketext += emotion + " LIKE '%" + subkey + "%' or "
@@ -136,10 +122,10 @@ def do(originfile):
             allsents=[]
             for row in reader:
                 i+=1
-                if i % 100000 == 0:
-                    print('reading sentence '+str(i))
+                if i % 100 == 0:
+                    print(str(i))
                 allsents.append(row)
-                #if i%1000==0:break
+                if i%1000==0:break
                 #sent=row[2]
                 '''lan = identifier.classify(sent)[0]
                 acc = identifier.classify(sent)[1]
@@ -165,8 +151,7 @@ def do(originfile):
             csv_file.close()
             print('num of reviews: '+str(len(allsents)))
             counter = Value('i', 0)
-            subks=mp.Manager().list(subkeywords)
-            pool = mp.Pool(initializer=init_globals, processes=mp.cpu_count()*2,initargs=(counter,subks,),)
+            pool = mp.Pool(initializer=init_globals, processes=mp.cpu_count()*2,initargs=(counter,),)
             results=pool.map_async(thread_function_row_only, [row for row in allsents]).get()
             pool.close()
             pool.join()
@@ -226,7 +211,7 @@ def do(originfile):
             for sen in results:
                 i += 1
                 if i % 100000 == 0:
-                    print('writing sent '+str(i))
+                    print(str(i))
                 writer = csv.writer(csv_file, delimiter='|', quotechar='"', quoting=csv.QUOTE_MINIMAL)
                 writer.writerow(sen)
             csv_file.close()
