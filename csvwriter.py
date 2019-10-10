@@ -2,6 +2,7 @@ import time
 
 from nltk import word_tokenize
 
+import helper
 from db import db_connection, db_operator
 import csv
 import multiprocessing as mp
@@ -92,16 +93,7 @@ def do(originfile):
     start_time = time.time()
     db = db_connection()
     queryexecutor = db_operator(db)
-    keywords = {}
-    f = open(originfile, "r")
-    for line in f:
-        keyword = line[:-1]  # important to have last line with \n
-        keywords[keyword] = []
-        fs = open("subkeywords_booking/subkeywords_booking_cleaned/" + keyword + ".txt", "r")
-        for linesub in fs:
-            keywords[keyword].append(linesub[:-1])  # important to have last line with \n
-        fs.close()
-    f.close()
+    keywords=helper.getKeywords(originfile)
     #nlp.add_pipe(LanguageDetector(), name="language_detector", last=True)
     #nlp.add_pipe(LanguageDetector(language_detection_function=custom_detection_function), name="language_detector",last=True)
     print("Number of processors: ", mp.cpu_count())
@@ -109,11 +101,10 @@ def do(originfile):
         print("begin " + emotion)
         for keyword in keywords.keys():
             print(keyword)
-            '''f=open('csvs/' + keyword + '_' + emotion.lower() + '.csv', mode='w')
+            '''f=open('resources/csvs/' + keyword + '_' + emotion.lower() + '.csv', mode='w')
             f.close()
             liketext = 'SELECT ReviewID, Country, ' + emotion + ' from masterthesis.reviews where '
             '''
-            global subks
             subkeywords = keywords[keyword]
             '''for subkey in subkeywords:
                 liketext += emotion + " LIKE '%" + subkey + "%' or "
@@ -125,9 +116,9 @@ def do(originfile):
             db.disconnect()
             print("start analyzing sentences")'''
             toaddsents = []
-            csv_file = open('csvs/' + keyword + '_' + emotion.lower() + '.csv', mode='w',encoding="utf8",newline='\n')
+            csv_file = open('resources/csvs/' + keyword + '_' + emotion.lower() + '.csv', mode='w',encoding="utf8",newline='\n')
             csv_file.close()
-            csv_file = open('csvs/all_sentences/' + keyword + '_' + emotion.lower() + '.csv', mode='r',encoding="utf8",newline='\n')
+            csv_file = open('resources/csvs/all_sentences/' + keyword + '_' + emotion.lower() + '.csv', mode='r',encoding="utf8",newline='\n')
             '''row_count = sum(1 for row in reader)
             print("number of sentences: " + str(len(row_count)))'''
             #print("number of reviews: "+str(len(fields)))
@@ -222,7 +213,7 @@ def do(originfile):
             print("start writing sentences")
             print("num sents: " + str(len(results)))
             i = 0
-            csv_file = open('csvs/' + keyword + '_' + emotion.lower() + '.csv', mode='a', encoding="utf8",newline='\n')
+            csv_file = open('resources/csvs/' + keyword + '_' + emotion.lower() + '.csv', mode='a', encoding="utf8",newline='\n')
             for sen in results:
                 i += 1
                 if i % 100000 == 0:

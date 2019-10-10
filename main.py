@@ -1,6 +1,7 @@
 import csvwriter
 
 import lemm
+import topicwriter
 import wordwriter
 
 if __name__ == '__main__':
@@ -14,5 +15,6 @@ if __name__ == '__main__':
     wordgetter.wordgetter.get_write_words(keywords, filename='booking_linked_keywords.txt')'''
     #viewmaker.viemaker.do("booking_keywords.txt")
     #lemm.lemm.stemlemmatizer("booking_keywords.txt")
-    csvwriter.do("booking_keywords.txt")
+    #csvwriter.do("booking_keywords.txt")
     #wordwriter.wordwriter.write("booking_keywords.txt")
+    topicwriter.do("booking_keywords.txt")
