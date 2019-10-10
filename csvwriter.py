@@ -119,9 +119,6 @@ def do(originfile):
             csv_file = open('resources/csvs/' + keyword + '_' + emotion.lower() + '.csv', mode='w',encoding="utf8",newline='\n')
             csv_file.close()
             csv_file = open('resources/csvs/all_sentences/' + keyword + '_' + emotion.lower() + '.csv', mode='r',encoding="utf8",newline='\n')
-            '''row_count = sum(1 for row in reader)
-            print("number of sentences: " + str(len(row_count)))'''
-            #print("number of reviews: "+str(len(fields)))
             reader = csv.reader(csv_file, delimiter='|', quotechar='"')
             i = 0
             allsents=[]
