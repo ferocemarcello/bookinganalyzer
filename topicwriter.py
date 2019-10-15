@@ -27,6 +27,7 @@ import numpy as np
 from sklearn.metrics import silhouette_score
 import pyLDAvis as pyLDAvis
 import pyLDAvis.sklearn
+import os
 
 class TopicWriter:
     # Create a set of frequent words
@@ -154,9 +155,14 @@ class TopicWriter:
         topic_keywords = []
         for topic_weights in lda_model.components_:
             top_keyword_locs = (-topic_weights).argsort()[:n_words]
-            topic_keywords.append(keywords.take(top_keyword_locs))
+            kw=keywords.take(top_keyword_locs)
+            w=topic_weights.take(top_keyword_locs)
+            kww=[str(kw[i])+'('+str(w[i])+')' for i in range(len(kw))]
+            #topic_keywords.append(keywords.take(top_keyword_locs))
+            topic_keywords.append(kww)
         return topic_keywords
-    def create_wordcloud(self, text="",stopwords=[],display=False, save=False, path=""):
+    def create_wordcloud(self, corpus=[],stopwords=[],display=False, save=True, path=""):
+        text = " ".join(review for review in corpus)
         wordcloud = WordCloud(stopwords=stopwords, background_color="white", max_words=100).generate(text)
         # Display the generated image:
         # the matplotlib way:
@@ -169,55 +175,48 @@ class TopicWriter:
                     raw_corpus_by_nation[r[1]]=[]
                 raw_corpus_by_nation[r[1]].append(r)
         return raw_corpus_by_nation
-    def get_corpus_from_raw_corpus_by_nation(self, nat, raw_corpus_by_nation):
+    def get_raw_corpus_nat(self, nat, raw_corpus_by_nation):
         reviews=raw_corpus_by_nation[nat]
-        rev_only=[r[2] for r in reviews]
-        return rev_only
-    def create_wordclouds_all(self, raw_corpus,keyword,emotion,stopwords):
-        raw_corpus_by_nation = self.cluster_raw_corpus_by_nation(raw_corpus)
-        raw_corpus_text = self.getRawCorpus(
-            csv_file=open('resources/csvs/' + keyword + '_' + emotion.lower() + '.csv', mode='r',
-                          encoding="utf8", newline='\n'), all=False)
-        # Generate a word cloud image
-        text = " ".join(review for review in raw_corpus_text)
-        try:
-            self.create_wordcloud(text=text, stopwords=stopwords, display=False, save=True,
-                                  path='resources/wordclouds/' + keyword + '_' + emotion.lower() + '_wordcloud.png')
-        except ValueError:
-            print("0 words in csv")
-        for nat in raw_corpus_by_nation.keys():
-            print(nat)
-            raw_corpus_nat_text = self.get_corpus_from_raw_corpus_by_nation(nat, raw_corpus_by_nation)
-            # self.doBasicGensim(originfile,raw_corpus_nat_text)
-            # self.doTWds(originfile,raw_corpus_nat_text)
-            # self.doKaggle(originfile,raw_corpus_nat_text,keyword,emotion)
-
-            # Generate a word cloud image
-            text = " ".join(review for review in raw_corpus_nat_text)
-            self.create_wordcloud(text=text, stopwords=stopwords, display=False, save=True,
-                                  path='resources/wordclouds/' + keyword + '_' + emotion.lower() + '_' + nat + '_wordcloud.png')
+        return reviews
     def do(self,originfile):
         keywords = helper.getKeywords(originfile)
         # Create stopword list:
         stopwords = self.getStopwords(self.stopset)
-        for emotion in ['Good', 'Bad']:
+        for emotion in ['Good','Bad']:
             print("begin " + emotion)
             for keyword in keywords.keys():
                 print(keyword)
                 raw_corpus = self.getRawCorpus(
                     csv_file=open('resources/csvs/' + keyword + '_' + emotion.lower() + '.csv', mode='r',
                                   encoding="utf8", newline='\n'),all=True)
-                #self.create_wordclouds_all(raw_corpus, keyword, emotion, stopwords)
+                raw_corpus_by_nation = self.cluster_raw_corpus_by_nation(raw_corpus)
+                todeletenations=[]
+                for k in raw_corpus_by_nation.keys():
+                    if len(raw_corpus_by_nation[k])<100:
+                        todeletenations.append(k)
+                raw_corpus=[r for r in raw_corpus if r[1] not in todeletenations]
+                corpus = self.getCorpusTextFromRaw(raw_corpus)
+                self.doKaggle(corpus, stopwords)
+                # self.doBasicGensim(originfile,corpus)
+                # self.doTWds(originfile,corpus)
+                '''try:
+                    os.mkdir('resources/wordclouds/' + keyword + '_' + emotion.lower())
+                except Exception as e:
+                    print(e)
+                corpus=self.getCorpusTextFromRaw(raw_corpus)
+                try:
+                    self.create_wordcloud(corpus, stopwords,path='resources/wordclouds/' + keyword + '_' + emotion.lower() + '_wordcloud.png')
+                except ValueError:
+                    None
                 raw_corpus_by_nation=self.cluster_raw_corpus_by_nation(raw_corpus)
                 for nat in raw_corpus_by_nation.keys():
                     print(nat)
-                    raw_corpus_nat_text=self.get_corpus_from_raw_corpus_by_nation(nat,raw_corpus_by_nation)
-                    #self.doBasicGensim(originfile,raw_corpus_nat_text)
-                    #self.doTWds(originfile,raw_corpus_nat_text)
-                    self.doKaggle(raw_corpus_nat_text,stopwords)
+                    raw_corpus_nat_text=self.getCorpusTextFromRaw(self.get_raw_corpus_nat(nat, raw_corpus_by_nation))
+                    self.create_wordcloud(raw_corpus_nat_text, stopwords,
+                                          path='resources/wordclouds/' + keyword + '_' + emotion.lower() + '/'+nat+'_wordcloud.png')'''
     def doKaggle(self,raw_corpus,stopwords):
         # https://www.kaggle.com/michaelcwang2/topic-modeling-for-hotel-review
-        list_of_list_of_tokens = list(self.sent_to_words(raw_corpus))[:100]
+        list_of_list_of_tokens = list(self.sent_to_words(raw_corpus))
         list_of_list_of_tokens_no_stopwords=[[tok for tok in l if tok not in stopwords] for l in list_of_list_of_tokens]
         # https://spacy.io/usage/processing-pipelines
         nlp = spacy.load('en', disable=['parser', 'ner'])
@@ -236,16 +235,14 @@ class TopicWriter:
                                         )
         tf = tf_vectorizer.fit_transform(data_lemmatized)
         #tf_feature_names = tf_vectorizer.get_feature_names()
+        '''
         # Materialize the sparse data
-        data_dense = tf.todense()#Return a dense matrix representation of this matrix.
+        data_dense = tf.todense()#Return a dense matrix representation of this matrix.'''
         '''A NumPy matrix object with the same shape and containing the same data represented by the sparse matrix,
          with the requested memory order. If out was passed and was an array (rather than a numpy.matrix), 
          it will be filled with the appropriate values and returned wrapped in a numpy.matrix object that shares the same memory.'''
-        # Compute Sparsicity = Percentage of Non-Zero cells
-        print("Sparsicity: ", ((data_dense > 0).sum() / data_dense.size) * 100, "%")
-        no_topics = 15
-        # Run NMF(Non-negative Matrix factorization)
-        nmf = NMF(n_components=no_topics, random_state=1, alpha=.1, l1_ratio=.5, init='nndsvd').fit(tfidf)
+        '''# Compute Sparsicity = Percentage of Non-Zero cells
+        print("Sparsicity: ", ((data_dense > 0).sum() / data_dense.size) * 100, "%")'''
         #random_state=If int, random_state is the seed used by the random number generator;
         # If RandomState instance, random_state is the random number generator;
         #alpha=Constant that multiplies the regularization terms. Set it to zero to have no regularization.
@@ -276,27 +273,17 @@ class TopicWriter:
         print("Log Likelihood: ", lda_model.score(tf))
         # Perplexity: Lower the better. Perplexity = exp(-1. * log-likelihood per word)
         print("Perplexity: ", lda_model.perplexity(tf))'''
+        lda_model=LatentDirichletAllocation(batch_size=128, doc_topic_prior=None,
+                          evaluate_every=-1, learning_decay=0.7,
+                          learning_method='batch', learning_offset=10.0,
+                          max_doc_update_iter=100, max_iter=10,
+                          mean_change_tol=0.001, n_components=5, n_jobs=None,
+                          perp_tol=0.1, random_state=None,
+                          topic_word_prior=None,
+                          verbose=0)
+        '''best_lda_model=self.getBestLdaModel(tf)
+        lda_model=best_lda_model'''
 
-        # Define Search Param
-        search_params = {'n_components': [5, 10, 15, 20], 'learning_decay': [.5, .7, .9]}
-        # Init the Model
-        lda = LatentDirichletAllocation()
-        model = GridSearchCV(lda, param_grid=search_params)
-        #GridSearchCV implements a “fit” and a “score” method.
-        # It also implements “predict”, “predict_proba”, “decision_function”, “transform” and “inverse_transform” if they are implemented in the estimator used.
-
-        # Do the Grid Search
-        model.fit(tf)
-        # Best Model
-        best_lda_model = model.best_estimator_#Estimator that was chosen by the search,
-        # i.e. estimator which gave highest score (or smallest loss if specified) on the left out data
-
-        # Model Parameters
-        print("Best Model's Params: ", model.best_params_)
-        # Log Likelihood Score
-        print("Best Log Likelihood Score: ", model.best_score_)
-        # Perplexity
-        print("Model Perplexity: ", best_lda_model.perplexity(tf))
         '''
         # Get Log Likelyhoods from Grid Search Output
         gscore = model.cv_results_
@@ -326,22 +313,23 @@ class TopicWriter:
         plt.show()'''
         # Create Document - Topic Matrix
         #Transform data X according to the fitted model.
-        lda_output = best_lda_model.transform(tf)
-        df_document_topic,df_document_topics,topicnames=self.buildpddataframedoctop(best_lda_model,data_lemmatized,lda_output)
+        lda_output = lda_model.fit_transform(tfidf)
+        df_document_topic,df_document_topics,topicnames=self.buildpddataframedoctop(lda_model,data_lemmatized,lda_output)
         #print(df_document_topics.data)
 
         # start K-means analysis here
-        self.kmeans(df_document_topic)
+        #self.kmeans(df_document_topic)
         # Topic-Keyword Matrix
         df_topic_keywords = pd.DataFrame(
-            best_lda_model.components_ / best_lda_model.components_.sum(axis=1)[:, np.newaxis])
+            lda_model.components_ / lda_model.components_.sum(axis=1)[:, np.newaxis])
         # Assign Column and Index
-        df_topic_keywords.columns = tf_vectorizer.get_feature_names()
+        #df_topic_keywords.columns = tf_vectorizer.get_feature_names()
+        df_topic_keywords.columns = tfidf_vectorizer.get_feature_names()
         df_topic_keywords.index = topicnames
         # View
         #df_topic_keywords.head(15)
         # Show top n keywords for each topic
-        topic_keywords = self.show_lda_topics(lda_model=best_lda_model, n_words=10,
+        topic_keywords = self.show_lda_topics(lda_model=lda_model, n_words=10,
                                               df_topic_keywords=df_topic_keywords)
         # Topic - Keywords Dataframe
         df_topic_keywords = pd.DataFrame(topic_keywords)
@@ -351,19 +339,24 @@ class TopicWriter:
         # lda = LatentDirichletAllocation(n_components=no_topics, max_iter=5, learning_method='online', learning_offset=50.,random_state=0).fit(tf)
         # Topic-Keyword matrix
         # tf_topic_keywords=pd.DataFrame(lda.components_/lda.components_.sum(axis=1)[:,np.newaxis])
-        no_top_words = 8
         # Assign Columns and Index
         # tf_topic_keywords.columns=tf_feature_names
         # tf_topic_keywords.index=np.arange(0,no_topics)
         # print(tf_topic_keywords.head())
+
+        '''no_topics = 15
+        no_top_words = 8
+        # Run NMF(Non-negative Matrix factorization)
+        nmf = NMF(n_components=no_topics, random_state=1, alpha=.1, l1_ratio=.5, init='nndsvd').fit(tfidf)
+        
         # display topic
-        self.display_topics(nmf, tfidf_feature_names, no_top_words)
+        self.display_topics(nmf, tfidf_feature_names, no_top_words)'''
         # display lda through weighting
-        # def display_topics(feature_names, no_of_words):
-        # for topic_idx, topic in enumerate(tf_topic_keywords):
-        #     print ("Topic %d:" % (topic_idx))
-        #     print (" ".join([feature_names[i]
-        #                     for i in topic.argsort()[:-no_of_words - 1:-1]]))
+        '''def display_topics(feature_names, no_of_words):
+        for topic_idx, topic in enumerate(tf_topic_keywords):
+             print ("Topic %d:" % (topic_idx))
+             print (" ".join([feature_names[i]
+                             for i in topic.argsort()[:-no_of_words - 1:-1]]))'''
         # type(tf_feature_names)
         # tf_feature_array=np.asarray(tf_feature_names)
         # display_topics(lda, tf_feature_names, no_top_words)
@@ -470,6 +463,33 @@ class TopicWriter:
         # panel = pyLDAvis.sklearn.prepare(best_lda_model, tf, tf_vectorizer, mds='tsne')  # no other mds function like tsne used.
         # print(panel)
         return kmeans
+
+    def getCorpusTextFromRaw(self, raw_corpus):
+        rev_only = [r[2] for r in raw_corpus]
+        return rev_only
+
+    def getBestLdaModel(self,tf):
+        # Define Search Param
+        search_params = {'n_components': [5, 10, 15, 20], 'learning_decay': [.5, .7, .9]}
+        # Init the Model
+        lda = LatentDirichletAllocation()
+        model = GridSearchCV(lda, param_grid=search_params)
+        # GridSearchCV implements a “fit” and a “score” method.
+        # It also implements “predict”, “predict_proba”, “decision_function”, “transform” and “inverse_transform” if they are implemented in the estimator used.
+
+        # Do the Grid Search
+        model.fit(tf)
+        # Best Model
+        best_lda_model = model.best_estimator_  # Estimator that was chosen by the search,
+        # i.e. estimator which gave highest score (or smallest loss if specified) on the left out data
+
+        # Model Parameters
+        print("Best Model's Params: ", model.best_params_)
+        # Log Likelihood Score
+        print("Best Log Likelihood Score: ", model.best_score_)
+        # Perplexity
+        print("Model Perplexity: ", best_lda_model.perplexity(tf))
+        return best_lda_model
 
 
 class Point:
