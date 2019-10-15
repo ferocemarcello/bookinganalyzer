@@ -273,17 +273,18 @@ class TopicWriter:
         print("Log Likelihood: ", lda_model.score(tf))
         # Perplexity: Lower the better. Perplexity = exp(-1. * log-likelihood per word)
         print("Perplexity: ", lda_model.perplexity(tf))'''
-        lda_model=LatentDirichletAllocation(batch_size=128, doc_topic_prior=None,
+        '''lda_model=LatentDirichletAllocation(batch_size=128, doc_topic_prior=None,
                           evaluate_every=-1, learning_decay=0.7,
                           learning_method='batch', learning_offset=10.0,
                           max_doc_update_iter=100, max_iter=10,
                           mean_change_tol=0.001, n_components=5, n_jobs=None,
                           perp_tol=0.1, random_state=None,
                           topic_word_prior=None,
-                          verbose=0)
-        '''best_lda_model=self.getBestLdaModel(tf)
-        lda_model=best_lda_model'''
-
+                          verbose=0)'''
+        best_lda_model=self.getBestLdaModel(tf)
+        lda_model=best_lda_model
+        print(lda_model)
+        exit()
         '''
         # Get Log Likelyhoods from Grid Search Output
         gscore = model.cv_results_
