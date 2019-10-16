@@ -194,9 +194,9 @@ class TopicWriter:
                 for k in raw_corpus_by_nation.keys():
                     if len(raw_corpus_by_nation[k])<100:
                         todeletenations.append(k)
-                raw_corpus=[r for r in raw_corpus if r[1] not in todeletenations]
+                raw_corpus=[r for r in raw_corpus if r[1] not in todeletenations][:1000]
                 corpus = self.getCorpusTextFromRaw(raw_corpus)
-                self.doKaggle(corpus, stopwords)
+                self.doKaggle(corpus, stopwords,keyword,emotion)
                 # self.doBasicGensim(originfile,corpus)
                 # self.doTWds(originfile,corpus)
                 '''try:
@@ -214,7 +214,7 @@ class TopicWriter:
                     raw_corpus_nat_text=self.getCorpusTextFromRaw(self.get_raw_corpus_nat(nat, raw_corpus_by_nation))
                     self.create_wordcloud(raw_corpus_nat_text, stopwords,
                                           path='resources/wordclouds/' + keyword + '_' + emotion.lower() + '/'+nat+'_wordcloud.png')'''
-    def doKaggle(self,raw_corpus,stopwords):
+    def doKaggle(self,raw_corpus,stopwords,keyword,emotion):
         # https://www.kaggle.com/michaelcwang2/topic-modeling-for-hotel-review
         list_of_list_of_tokens = list(self.sent_to_words(raw_corpus))
         list_of_list_of_tokens_no_stopwords=[[tok for tok in l if tok not in stopwords] for l in list_of_list_of_tokens]
@@ -227,14 +227,14 @@ class TopicWriter:
         tfidf = tfidf_vectorizer.fit_transform(data_lemmatized)#Learn vocabulary and idf, return term-document matrix.
         tfidf_feature_names = tfidf_vectorizer.get_feature_names()#Array mapping from feature integer indices to feature name
         # LDA can only use raw term counts for LDA because it is a probabilistic graphical model
-        tf_vectorizer = CountVectorizer(analyzer='word',##############Convert a collection of text documents to a matrix of token counts
+        '''tf_vectorizer = CountVectorizer(analyzer='word',##############Convert a collection of text documents to a matrix of token counts
                                         min_df=10,  # minimum read occurences of a word
                                         stop_words='english',  # remove stop words
                                         lowercase=True,  # convert all words to lowercase
                                         token_pattern='[a-zA-Z0-9]{2,}',  # num chars > 2
                                         )
         tf = tf_vectorizer.fit_transform(data_lemmatized)
-        #tf_feature_names = tf_vectorizer.get_feature_names()
+        tf_feature_names = tf_vectorizer.get_feature_names()'''
         '''
         # Materialize the sparse data
         data_dense = tf.todense()#Return a dense matrix representation of this matrix.'''
@@ -269,22 +269,22 @@ class TopicWriter:
         # of the token likelihoods in the test corpus given the model:
 
         lda_output = lda_model.fit_transform(tf)
-        # Log Likelyhood: Higher the bette
+        # Log Likelyhood: Higher the better
         print("Log Likelihood: ", lda_model.score(tf))
         # Perplexity: Lower the better. Perplexity = exp(-1. * log-likelihood per word)
         print("Perplexity: ", lda_model.perplexity(tf))'''
-        '''lda_model=LatentDirichletAllocation(batch_size=128, doc_topic_prior=None,
-                          evaluate_every=-1, learning_decay=0.7,
+        lda_model=LatentDirichletAllocation(batch_size=128, doc_topic_prior=None,
+                          evaluate_every=-1, learning_decay=0.5,
                           learning_method='batch', learning_offset=10.0,
                           max_doc_update_iter=100, max_iter=10,
                           mean_change_tol=0.001, n_components=5, n_jobs=None,
                           perp_tol=0.1, random_state=None,
                           topic_word_prior=None,
-                          verbose=0)'''
-        best_lda_model=self.getBestLdaModel(tf)
+                          verbose=0)
+        '''best_lda_model=self.getBestLdaModel(tf)
         lda_model=best_lda_model
         print(lda_model)
-        exit()
+        exit()'''
         '''
         # Get Log Likelyhoods from Grid Search Output
         gscore = model.cv_results_
@@ -315,6 +315,11 @@ class TopicWriter:
         # Create Document - Topic Matrix
         #Transform data X according to the fitted model.
         lda_output = lda_model.fit_transform(tfidf)
+        # Log Likelyhood: Higher the better
+        print("Log Likelihood: ", lda_model.score(tfidf))
+        # Perplexity: Lower the better. Perplexity = exp(-1. * log-likelihood per word)
+        print("Perplexity: ", lda_model.perplexity(tfidf))
+
         df_document_topic,df_document_topics,topicnames=self.buildpddataframedoctop(lda_model,data_lemmatized,lda_output)
         #print(df_document_topics.data)
 
@@ -336,7 +341,8 @@ class TopicWriter:
         df_topic_keywords = pd.DataFrame(topic_keywords)
         df_topic_keywords.columns = ['Word ' + str(i) for i in range(df_topic_keywords.shape[1])]
         df_topic_keywords.index = ['Topic ' + str(i) for i in range(df_topic_keywords.shape[0])]
-        print(df_topic_keywords)
+        #print(df_topic_keywords)
+        pd.concat([df_document_topic, df_topic_keywords]).to_csv(path_or_buf='resources/topics/' + keyword + '_' + emotion + '.csv',sep='|')
         # lda = LatentDirichletAllocation(n_components=no_topics, max_iter=5, learning_method='online', learning_offset=50.,random_state=0).fit(tf)
         # Topic-Keyword matrix
         # tf_topic_keywords=pd.DataFrame(lda.components_/lda.components_.sum(axis=1)[:,np.newaxis])
@@ -393,7 +399,8 @@ class TopicWriter:
         # column names
         topicnames = ["Topic" + str(i) for i in range(best_lda_model.n_components)]
         # index names
-        docnames = ["Doc" + str(i) for i in range(len(data_lemmatized))]
+        #docnames = ["Doc" + str(i) for i in range(len(data_lemmatized))]
+        docnames = data_lemmatized
         # Make the pandas dataframe
         df_document_topic = pd.DataFrame(np.round(lda_output, 2), columns=topicnames, index=docnames)
         # Get dominant topic for each document
@@ -402,7 +409,8 @@ class TopicWriter:
         # Styling
         # Apply Style
         # df_document_topics = df_document_topic.head(15).style.applymap(self.color_green).applymap(self.make_bold)
-        df_document_topics = df_document_topic.style.applymap(self.color_green).applymap(self.make_bold)
+        #df_document_topics = df_document_topic.style.applymap(self.color_green).applymap(self.make_bold)
+        df_document_topics=None
         return df_document_topic,df_document_topics,topicnames
 
     def kmeans(self,df_document_topic):
