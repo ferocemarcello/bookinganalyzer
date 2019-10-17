@@ -184,9 +184,9 @@ class TopicWriter:
         stopwords = self.getStopwords(self.stopset)
         stwfromtfidf=list(TfidfVectorizer(stop_words='english').get_stop_words())
         stopwords=set(list(stopwords)+stwfromtfidf)
-        for emotion in ['Bad']:
+        for emotion in ['Good','Bad']:
             print("begin " + emotion)
-            for keyword in list(keywords.keys())[6:]:
+            for keyword in list(keywords.keys()):
                 print(keyword)
                 raw_corpus = self.getRawCorpus(
                     csv_file=open('resources/csvs/' + keyword + '_' + emotion.lower() + '.csv', mode='r',
@@ -196,26 +196,34 @@ class TopicWriter:
                 for k in raw_corpus_by_nation.keys():
                     if len(raw_corpus_by_nation[k])<100:
                         todeletenations.append(k)
-                raw_corpus=[r for r in raw_corpus if r[1] not in todeletenations]
+                raw_corpus=[r for r in raw_corpus if r[1] not in todeletenations][:100]
                 corpus = self.getCorpusTextFromRaw(raw_corpus)
                 self.doKaggle(corpus, stopwords,keyword,emotion)
                 # self.doBasicGensim(originfile,corpus)
                 # self.doTWds(originfile,corpus)
                 '''try:
-                    os.mkdir('resources/wordclouds/' + keyword + '_' + emotion.lower())
+                    os.mkdir('resources/wordclouds/notinclundingkeyword/' + keyword + '_' + emotion.lower())
                 except Exception as e:
                     print(e)
                 corpus=self.getCorpusTextFromRaw(raw_corpus)
+                list_of_list_of_tokens = list(self.sent_to_words(corpus))
+                list_of_list_of_tokens_no_keyword = [[tok for tok in l if tok != keyword] for
+                                                       l in list_of_list_of_tokens]
+                corpus=[" ".join(l) for l in list_of_list_of_tokens_no_keyword]
                 try:
-                    self.create_wordcloud(corpus, stopwords,path='resources/wordclouds/' + keyword + '_' + emotion.lower() + '_wordcloud.png')
+                    self.create_wordcloud(corpus, stopwords,path='resources/wordclouds/notinclundingkeyword/' + keyword + '_' + emotion.lower() + '_wordcloud.png')
                 except ValueError:
                     None
                 raw_corpus_by_nation=self.cluster_raw_corpus_by_nation(raw_corpus)
                 for nat in raw_corpus_by_nation.keys():
                     print(nat)
                     raw_corpus_nat_text=self.getCorpusTextFromRaw(self.get_raw_corpus_nat(nat, raw_corpus_by_nation))
+                    list_of_list_of_tokens = list(self.sent_to_words(raw_corpus_nat_text))
+                    list_of_list_of_tokens_no_keyword = [[tok for tok in l if tok != keyword] for
+                                                         l in list_of_list_of_tokens]
+                    raw_corpus_nat_text = [" ".join(l) for l in list_of_list_of_tokens_no_keyword]
                     self.create_wordcloud(raw_corpus_nat_text, stopwords,
-                                          path='resources/wordclouds/' + keyword + '_' + emotion.lower() + '/'+nat+'_wordcloud.png')'''
+                                          path='resources/wordclouds/notinclundingkeyword/' + keyword + '_' + emotion.lower() + '/'+nat+'_wordcloud.png')'''
     def doKaggle(self,raw_corpus,stopwords,keyword,emotion):
         # https://www.kaggle.com/michaelcwang2/topic-modeling-for-hotel-review
         list_of_list_of_tokens = list(self.sent_to_words(raw_corpus))
@@ -328,8 +336,9 @@ class TopicWriter:
         #print(df_document_topics.data)
 
         # start K-means analysis here
-        #self.kmeans(df_document_topic)
-        # Topic-Keyword Matrix
+        kmeans=self.kmeans(df_document_topic,num_trial_clusters=15)
+        kmeans.to_csv(path_or_buf='resources/topics/clusterings/notincludingkeyword/' + keyword + '_' + emotion + '.csv', sep='|')
+        '''# Topic-Keyword Matrix
         df_topic_keywords = pd.DataFrame(
             lda_model.components_ / lda_model.components_.sum(axis=1)[:, np.newaxis])
         # Assign Column and Index
@@ -346,7 +355,8 @@ class TopicWriter:
         df_topic_keywords.columns = ['Word ' + str(i) for i in range(df_topic_keywords.shape[1])]
         df_topic_keywords.index = ['Topic ' + str(i) for i in range(df_topic_keywords.shape[0])]
         #print(df_topic_keywords)
-        pd.concat([df_document_topic, df_topic_keywords]).to_csv(path_or_buf='resources/topics/' + keyword + '_' + emotion + '.csv',sep='|')
+        pd.concat([df_document_topic, df_topic_keywords]).to_csv(path_or_buf='resources/topics/notincludingkeyword/' + keyword + '_' + emotion + '.csv',sep='|')
+        '''
         # lda = LatentDirichletAllocation(n_components=no_topics, max_iter=5, learning_method='online', learning_offset=50.,random_state=0).fit(tf)
         # Topic-Keyword matrix
         # tf_topic_keywords=pd.DataFrame(lda.components_/lda.components_.sum(axis=1)[:,np.newaxis])
@@ -417,65 +427,41 @@ class TopicWriter:
         df_document_topics=None
         return df_document_topic,df_document_topics,topicnames
 
-    def kmeans(self,df_document_topic):
-        df_document_topic_k = df_document_topic[["Topic0", "Topic1", "Topic2", "Topic3", "Topic4"]]
+    def kmeans(self,df_document_topic,num_trial_clusters=5):
+        df_document_topic_col=(list(df_document_topic.columns._data))[:-1]
+        df_document_topic_k = df_document_topic[df_document_topic_col]
         # print(df_document_topic_k.info())
-        K = np.array(df_document_topic_k)
         # Using the elbow method to find the optimal number of clusters
-        # Within-Cluster-Sum-of-Squares (WCSS)
-        wcssK = []
-        distancesK = []
-        j = 15
-        for i in range(1, j):
-            kmeans = KMeans(n_clusters=i, init='k-means++', max_iter=300, n_init=10, random_state=20)
-            kmeans.fit(df_document_topic_k)
-            wcssK.append(kmeans.inertia_)
-        # print(wcssK)
-        for k in range(1, j):
-            p1 = Point(x_init=0, y_init=wcssK[0])
-            p2 = Point(x_init=j - 1, y_init=wcssK[j - 2])
-            p = Point(x_init=k - 1, y_init=wcssK[k - 2])
-            distancesK.append(p.distance_to_line(p1, p2))
-        # print(distancesK)
-        print("The maximum distance is ", max(distancesK),
-              "at {}th clustering".format(distancesK.index(max(distancesK))))
-        plt.figure(figsize=(12, 8))
-        plt.plot(range(1, j), wcssK)
-        plt.plot(range(1, j), distancesK)
-        plt.title("The elbow method_Topic modeling for Hotel Review")
-        plt.xlabel("The number of clusters")
-        plt.ylabel("WCSS")
-        plt.legend(['wcss', 'distance'], loc='upper right')
-        # plt.show()
-        kmeans = KMeans(n_clusters=5, init='k-means++', max_iter=300, n_init=10, random_state=20)
-        a = kmeans.fit(df_document_topic_k).labels_
-        print(a[0:99])
-        print(kmeans.predict(df_document_topic_k)[0:299])
-        plt.figure(figsize=(12, 8))
+        opt_num_clusters_elbow=self.elbow(num_trial_clusters,df_document_topic_k.values)
+        opt_num_clusters_silhouette= self.silhouette(num_trial_clusters, df_document_topic_k.values)
+        opt_num_clusters=int((opt_num_clusters_elbow+opt_num_clusters_silhouette)/2)
+        kmeans = KMeans(n_clusters=opt_num_clusters, init='k-means++', max_iter=300, n_init=10, random_state=20)
+        clustering = kmeans.fit(df_document_topic_k)
+        #kmeansprediction=kmeans.predict(df_document_topic_k)
+        '''plt.figure(figsize=(12, 8))
         plt.scatter(df_document_topic_k['Topic0'].iloc[0:299], df_document_topic_k['Topic1'].iloc[0:299],
-                    c=kmeans.predict(df_document_topic_k)[0:299], s=50, )
-        centers = kmeans.cluster_centers_
+                    c=kmeans.predict(df_document_topic_k)[0:299], s=50, )#s : scalar or array_like, shape (n, ), optional The marker size in points**2. Default is rcParams['lines.markersize'] ** 2.
+        #c : color, sequence, or sequence of color, optional
+        #A sequence of color specifications of length n. or
+        # A sequence of n numbers to be mapped to colors using cmap and norm.
+        centers = clustering.cluster_centers_
         plt.scatter(centers[:, 0], centers[:, 2], c=[0, 1, 2, 3, 4], s=500, alpha=0.5)
         # plt.show()
-        # print(centers)
-        b = np.unique(a)
+        # print(centers)'''
+        '''b = np.unique(clustering_labels)#Find the unique elements of an array.
+        # Returns the sorted unique elements of an array
         for n in b:
-            print("Clustering {}".format(n) + " has {} Hotel Review,".format(a.tolist().count(n)))
-        range_n_clusters = [3, 4, 5, 6, 7]
-        for nth_clusters in range_n_clusters:
-            # The silhouette_score gives the average value for all the samples.
-            # This gives a perspective into the density and separation of the formed
-            # clusters
-            silhouette_avg = silhouette_score(df_document_topic_k, kmeans.fit_predict(df_document_topic_k))
-            print("For n_clusters =", nth_clusters,
-                  "The average silhouette_score is :", silhouette_avg)
+            print("Clustering {}".format(n) + " has {} Hotel Review,".format(clustering_labels.tolist().count(n)))
         df_topic_distribution = df_document_topic['dominant_topic'].value_counts().reset_index(
             name="Num Documents")
-        print(df_topic_distribution)
+        print(df_topic_distribution)'''
         # pyLDAvis.enable_notebook()
         # panel = pyLDAvis.sklearn.prepare(best_lda_model, tf, tf_vectorizer, mds='tsne')  # no other mds function like tsne used.
         # print(panel)
-        return kmeans
+        df_document_topic_k['cluster']=clustering.labels_
+        df_document_topic_k=df_document_topic_k.sort_values(by=['cluster'])
+        #valueslabels=np.append(values, clustering.labels_.reshape(clustering.labels_.shape[0],1), axis=1)
+        return df_document_topic_k
 
     def getCorpusTextFromRaw(self, raw_corpus):
         rev_only = [r[2] for r in raw_corpus]
@@ -503,6 +489,49 @@ class TopicWriter:
         # Perplexity
         print("Model Perplexity: ", best_lda_model.perplexity(tf))
         return best_lda_model
+
+    def elbow(self, num_trial_clusters, values):
+        # Within-Cluster-Sum-of-Squares (WCSS)
+        wcssK = []
+        distancesK = []
+        for i in range(1, num_trial_clusters+1):
+            kmeans = KMeans(n_clusters=i, init='k-means++', max_iter=300, n_init=10, random_state=20)
+            kmeans.fit(values)
+            wcssK.append(kmeans.inertia_)  # Sum of squared distances of samples to their closest cluster center.
+        # print(wcssK)
+        p1 = Point(x_init=0, y_init=wcssK[0])
+        p2 = Point(x_init=num_trial_clusters - 1, y_init=wcssK[num_trial_clusters - 1])
+        for k in range(0, num_trial_clusters):
+            p = Point(x_init=k + 1, y_init=wcssK[k])
+            distancesK.append(p.distance_to_line(p1, p2))
+        # print(distancesK)
+        print("The maximum distance is ", max(distancesK),
+              "at " + str(distancesK.index(max(distancesK)) + 1) + "th clustering")
+        plt.figure(figsize=(12, 8))
+        plt.plot(range(1, num_trial_clusters+1), wcssK)
+        plt.plot(range(1, num_trial_clusters+1), distancesK)
+        plt.title("The elbow method_Topic modeling for Hotel Review")
+        plt.xlabel("The number of clusters")
+        plt.ylabel("WCSS")
+        plt.legend(['wcss', 'distance'], loc='upper right')
+        # plt.show()
+        return distancesK.index(max(distancesK)) + 1
+
+    def silhouette(self, num_trial_clusters, values):
+        silhouettes=[]
+        for i in range(2, num_trial_clusters+1):
+            kmeans = KMeans(n_clusters=i, init='k-means++', max_iter=300, n_init=10, random_state=20)
+            clustering=kmeans.fit(values)
+            # The silhouette_score gives the average value for all the samples.
+            # This gives a perspective into the density and separation of the formed clusters
+            silhouette = silhouette_score(values, clustering.labels_)  # Compute the mean Silhouette Coefficient of all samples.
+            silhouettes.append(silhouette)
+            '''The Silhouette Coefficient is calculated using the mean intra-cluster distance (a) 
+            and the mean nearest-cluster distance (b) for each sample. 
+            The Silhouette Coefficient for a sample is (b - a) / max(a, b). 
+            To clarify, b is the distance between a sample and the nearest cluster that the sample is not a part of. 
+            Note that Silhouette Coefficient is only defined if number of labels is 2 <= n_labels <= n_samples - 1.'''
+        return silhouettes.index(max(silhouettes)) + 1
 
 
 class Point:
