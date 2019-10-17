@@ -196,7 +196,7 @@ class TopicWriter:
                 for k in raw_corpus_by_nation.keys():
                     if len(raw_corpus_by_nation[k])<100:
                         todeletenations.append(k)
-                raw_corpus=[r for r in raw_corpus if r[1] not in todeletenations][:100]
+                raw_corpus=[r for r in raw_corpus if r[1] not in todeletenations]
                 corpus = self.getCorpusTextFromRaw(raw_corpus)
                 self.doKaggle(corpus, stopwords,keyword,emotion)
                 # self.doBasicGensim(originfile,corpus)
