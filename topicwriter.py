@@ -42,7 +42,7 @@ class TopicWriter:
          "down", "in", "out", "on", "off", "over", "under", "again", "further", "then", "once", "here", "there", "when",
          "where", "why", "how", "all", "any", "both", "each", "few", "more", "most", "other", "some", "such", "no",
          "nor", "not", "only", "own", "same", "so", "than", "too", "very", "s", "t", "can", "will", "just", "don",
-         "should", "now"])
+         "should", "now",'aren', 'couldn', 'didn', 'doesn', 'hadn', 'hasn', 'haven', 'isn', 'let', 'll', 'mustn', 'nan', 'negative', 'shan', 'shouldn', 've', 'wasn', 'weren', 'won', 'wouldn'])
     punctuation_list = ['+', ',', '.', ';', ':', '!', '"', '?', '-', '_', '(', ')', "'"]
     def getTokensCleanStopset(self, raw_corpus, stopset,limit):
         list_of_list_of_tokens = [[word for word in document.lower().split() if word not in stopset]
@@ -182,9 +182,11 @@ class TopicWriter:
         keywords = helper.getKeywords(originfile)
         # Create stopword list:
         stopwords = self.getStopwords(self.stopset)
-        for emotion in ['Good','Bad']:
+        stwfromtfidf=list(TfidfVectorizer(stop_words='english').get_stop_words())
+        stopwords=set(list(stopwords)+stwfromtfidf)
+        for emotion in ['Bad']:
             print("begin " + emotion)
-            for keyword in keywords.keys():
+            for keyword in list(keywords.keys())[6:]:
                 print(keyword)
                 raw_corpus = self.getRawCorpus(
                     csv_file=open('resources/csvs/' + keyword + '_' + emotion.lower() + '.csv', mode='r',
@@ -194,7 +196,7 @@ class TopicWriter:
                 for k in raw_corpus_by_nation.keys():
                     if len(raw_corpus_by_nation[k])<100:
                         todeletenations.append(k)
-                raw_corpus=[r for r in raw_corpus if r[1] not in todeletenations][:1000]
+                raw_corpus=[r for r in raw_corpus if r[1] not in todeletenations]
                 corpus = self.getCorpusTextFromRaw(raw_corpus)
                 self.doKaggle(corpus, stopwords,keyword,emotion)
                 # self.doBasicGensim(originfile,corpus)
@@ -217,13 +219,15 @@ class TopicWriter:
     def doKaggle(self,raw_corpus,stopwords,keyword,emotion):
         # https://www.kaggle.com/michaelcwang2/topic-modeling-for-hotel-review
         list_of_list_of_tokens = list(self.sent_to_words(raw_corpus))
-        list_of_list_of_tokens_no_stopwords=[[tok for tok in l if tok not in stopwords] for l in list_of_list_of_tokens]
+        list_of_list_of_tokens_no_stopwords=[[tok for tok in l if tok not in stopwords and tok!=keyword] for l in list_of_list_of_tokens]
+        if len(list_of_list_of_tokens)==0 or len(list_of_list_of_tokens_no_stopwords)==0:return
         # https://spacy.io/usage/processing-pipelines
         nlp = spacy.load('en', disable=['parser', 'ner'])
-        data_lemmatized = self.lemmatization(list_of_list_of_tokens, nlp,#list of lists of tokens->list of strings
+        data_lemmatized = self.lemmatization(list_of_list_of_tokens_no_stopwords, nlp,#list of lists of tokens->list of strings
                                              allowed_postags=['NOUN', 'ADJ', 'VERB', 'ADV'])
         # NMF is able to use tf-idf
-        tfidf_vectorizer = TfidfVectorizer(stop_words='english')#Convert a collection of raw documents to a matrix of TF-IDF features. Equivalent to CountVectorizer followed by TfidfTransformer.
+        #tfidf_vectorizer = TfidfVectorizer(stop_words='english')#Convert a collection of raw documents to a matrix of TF-IDF features. Equivalent to CountVectorizer followed by TfidfTransformer.
+        tfidf_vectorizer = TfidfVectorizer(stop_words=stopwords)  # Convert a collection of raw documents to a matrix of TF-IDF features. Equivalent to CountVectorizer followed by TfidfTransformer.
         tfidf = tfidf_vectorizer.fit_transform(data_lemmatized)#Learn vocabulary and idf, return term-document matrix.
         tfidf_feature_names = tfidf_vectorizer.get_feature_names()#Array mapping from feature integer indices to feature name
         # LDA can only use raw term counts for LDA because it is a probabilistic graphical model
