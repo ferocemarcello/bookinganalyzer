@@ -196,7 +196,7 @@ class TopicWriter:
                 for k in raw_corpus_by_nation.keys():
                     if len(raw_corpus_by_nation[k])<100:
                         todeletenations.append(k)
-                raw_corpus=[r for r in raw_corpus if r[1] not in todeletenations]
+                raw_corpus=[r for r in raw_corpus if r[1] not in todeletenations][:1000]
                 corpus = self.getCorpusTextFromRaw(raw_corpus)
                 self.doKaggle(corpus, stopwords,keyword,emotion)
                 # self.doBasicGensim(originfile,corpus)
@@ -336,7 +336,11 @@ class TopicWriter:
         #print(df_document_topics.data)
 
         # start K-means analysis here
-        kmeans=self.kmeans(df_document_topic,num_trial_clusters=15)
+        kmeans,clustering=self.kmeans(df_document_topic,num_trial_clusters=15)
+        medianvalues=clustering.cluster_centers_
+        clusteredvalues = [[kmeans.values[j] for j in range(len(clustering.labels_)) if clustering.labels_[j] == l] for l in
+                 np.unique(clustering.labels_)]
+        variances=self.computeVariances(clusteredvalues)
         kmeans.to_csv(path_or_buf='resources/topics/clusterings/notincludingkeyword/' + keyword + '_' + emotion + '.csv', sep='|')
         '''# Topic-Keyword Matrix
         df_topic_keywords = pd.DataFrame(
@@ -433,8 +437,9 @@ class TopicWriter:
         # print(df_document_topic_k.info())
         # Using the elbow method to find the optimal number of clusters
         opt_num_clusters_elbow=self.elbow(num_trial_clusters,df_document_topic_k.values)
-        opt_num_clusters_silhouette= self.silhouette(num_trial_clusters, df_document_topic_k.values)
-        opt_num_clusters=int((opt_num_clusters_elbow+opt_num_clusters_silhouette)/2)
+        #opt_num_clusters_silhouette= self.silhouette(num_trial_clusters, df_document_topic_k.values)
+        #opt_num_clusters=int((opt_num_clusters_elbow+opt_num_clusters_silhouette)/2)
+        opt_num_clusters=opt_num_clusters_elbow
         kmeans = KMeans(n_clusters=opt_num_clusters, init='k-means++', max_iter=300, n_init=10, random_state=20)
         clustering = kmeans.fit(df_document_topic_k)
         #kmeansprediction=kmeans.predict(df_document_topic_k)
@@ -461,7 +466,7 @@ class TopicWriter:
         df_document_topic_k['cluster']=clustering.labels_
         df_document_topic_k=df_document_topic_k.sort_values(by=['cluster'])
         #valueslabels=np.append(values, clustering.labels_.reshape(clustering.labels_.shape[0],1), axis=1)
-        return df_document_topic_k
+        return df_document_topic_k,clustering
 
     def getCorpusTextFromRaw(self, raw_corpus):
         rev_only = [r[2] for r in raw_corpus]
@@ -532,6 +537,9 @@ class TopicWriter:
             To clarify, b is the distance between a sample and the nearest cluster that the sample is not a part of. 
             Note that Silhouette Coefficient is only defined if number of labels is 2 <= n_labels <= n_samples - 1.'''
         return silhouettes.index(max(silhouettes)) + 1
+
+    def computeVariances(self, clusteredvalues):
+        return None
 
 
 class Point:
