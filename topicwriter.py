@@ -2,7 +2,7 @@ import csv
 import math
 
 import matplotlib
-
+from scipy.stats import norm
 import helper
 import fasttext
 from collections import defaultdict
@@ -337,10 +337,7 @@ class TopicWriter:
 
         # start K-means analysis here
         kmeans,clustering=self.kmeans(df_document_topic,num_trial_clusters=15)
-        medianvalues=clustering.cluster_centers_
-        clusteredvalues = [[kmeans.values[j] for j in range(len(clustering.labels_)) if clustering.labels_[j] == l] for l in
-                 np.unique(clustering.labels_)]
-        variances=self.computeVariances(clusteredvalues)
+        em=self.EM()
         kmeans.to_csv(path_or_buf='resources/topics/clusterings/notincludingkeyword/' + keyword + '_' + emotion + '.csv', sep='|')
         '''# Topic-Keyword Matrix
         df_topic_keywords = pd.DataFrame(
@@ -538,8 +535,39 @@ class TopicWriter:
             Note that Silhouette Coefficient is only defined if number of labels is 2 <= n_labels <= n_samples - 1.'''
         return silhouettes.index(max(silhouettes)) + 1
 
-    def computeVariances(self, clusteredvalues):
-        return None
+    def computeVariances(self, medianvalues,clusteredvalues):
+        variances=[]
+        def ff(x,u=None):
+            return np.power(x-u,2)
+        for i in range(len(medianvalues)):
+            medianvalue=medianvalues[i]
+            values=clusteredvalues[i]
+            variance=(np.sum(np.apply_along_axis(ff,1,values,u=medianvalue),axis=0))/len(values)
+            variances.append(variance)
+        return variances
+
+    def EM(self,clustering,pddataframe):
+        norms = []
+        pdfs = []
+        w=[]
+        def expect(n_clusters, meanvalues, stddevs,clusteredvalues):
+            for i in range(n_clusters):
+                n = norm(meanvalues[i], stddevs[i])
+                norms.append(n)
+                pdf=n.pdf(clusteredvalues[i])
+                pdfs.append(pdf)
+                ww=pdf
+        meanvalues = clustering.cluster_centers_
+        clusteredvalues = [[pddataframe.values[j][:-1] for j in range(len(clustering.labels_)) if clustering.labels_[j] == l]
+                           for l in
+                           np.unique(clustering.labels_)]
+        variances = self.computeVariances(meanvalues, clusteredvalues)
+        stddevs = np.sqrt(variances)
+        clusteredvalues = np.array(clusteredvalues)
+        for j in range(clusteredvalues.shape[0]):
+            clusteredvalues[j] = np.array(clusteredvalues[j])
+        e=expect(np.unique(clustering.labels_),meanvalues,stddevs,clusteredvalues)
+        return pdfs
 
 
 class Point:
@@ -560,3 +588,15 @@ class Point:
         num = abs(y_diff * self.x - x_diff * self.y + p2.x * p1.y - p2.y * p1.x)
         den = math.sqrt(y_diff ** 2 + x_diff ** 2)
         return num / den
+class Gaussian:
+    "Model univariate Gaussian"
+    def __init__(self, mu, sigma):
+        #mean and standard deviation
+        self.mu = mu
+        self.sigma = sigma
+
+    #probability density function
+    def pdf(self, x):
+        "Probability of a data point given the current parameters"
+        y=(1/(self.sigma*np.sqrt(2*np.pi)))*np.exp(((-(x-self.mu))/2*np.power(self.sigma,2)))
+        return y
