@@ -1,3 +1,4 @@
+import copy
 import csv
 import math
 
@@ -231,6 +232,7 @@ class TopicWriter:
         if len(list_of_list_of_tokens)==0 or len(list_of_list_of_tokens_no_stopwords)==0:return
         # https://spacy.io/usage/processing-pipelines
         nlp = spacy.load('en', disable=['parser', 'ner'])
+        #spacy.load("en_core_web_sm",disable=['parser', 'ner'])
         data_lemmatized = self.lemmatization(list_of_list_of_tokens_no_stopwords, nlp,#list of lists of tokens->list of strings
                                              allowed_postags=['NOUN', 'ADJ', 'VERB', 'ADV'])
         # NMF is able to use tf-idf
@@ -337,7 +339,7 @@ class TopicWriter:
 
         # start K-means analysis here
         kmeans,clustering=self.kmeans(df_document_topic,num_trial_clusters=15)
-        em=self.EM()
+        em=self.EM(clustering,kmeans)
         kmeans.to_csv(path_or_buf='resources/topics/clusterings/notincludingkeyword/' + keyword + '_' + emotion + '.csv', sep='|')
         '''# Topic-Keyword Matrix
         df_topic_keywords = pd.DataFrame(
@@ -549,25 +551,79 @@ class TopicWriter:
     def EM(self,clustering,pddataframe):
         norms = []
         pdfs = []
-        w=[]
-        def expect(n_clusters, meanvalues, stddevs,clusteredvalues):
-            for i in range(n_clusters):
+        probscl=[]
+        ww=[0]*len(np.unique(clustering.labels_))
+        xsl = []
+        xsa=np.array([])
+        def expect(clusters):
+            wws=[]
+            probxs = np.zeros(xsa.shape)
+            for i in clusters:
                 n = norm(meanvalues[i], stddevs[i])
                 norms.append(n)
-                pdf=n.pdf(clusteredvalues[i])
+                pdf=n.pdf(xsa)
                 pdfs.append(pdf)
-                ww=pdf
+                probxs+=n.pdf(xsa)
+            for i in clusters:
+                w = (pdfs[i] * probscl[i]) / probxs
+                wws.append(w)
+            return wws
+        def max(clusters):
+            sumw=0
+            for i in clusters:
+                sumw+=np.sum(ww[i],axis=0)
+            for i in clusters:
+                w=ww[i]
+                mu=np.sum(w*xsa,axis=0)/np.sum(w,axis=0)
+                meanvalues[i]=mu
+                stdv=np.sqrt(np.sum(w*(np.power((xsa-mu),2)),axis=0)/np.sum(w,axis=0))
+                stddevs[i]=stdv
+                prob=np.sum(w,axis=0)/sumw
+                probscl[i]=prob
+
+        totelementcount=len(clustering.labels_)
         meanvalues = clustering.cluster_centers_
         clusteredvalues = [[pddataframe.values[j][:-1] for j in range(len(clustering.labels_)) if clustering.labels_[j] == l]
-                           for l in
-                           np.unique(clustering.labels_)]
+                           for l in np.unique(clustering.labels_)]
+        for xv in clusteredvalues:
+            for x in xv:
+                xsl.append(x)
+        xsa = np.asarray(xsl)
         variances = self.computeVariances(meanvalues, clusteredvalues)
         stddevs = np.sqrt(variances)
         clusteredvalues = np.array(clusteredvalues)
         for j in range(clusteredvalues.shape[0]):
             clusteredvalues[j] = np.array(clusteredvalues[j])
-        e=expect(np.unique(clustering.labels_),meanvalues,stddevs,clusteredvalues)
-        return pdfs
+            prob = len(clusteredvalues[j]) / totelementcount
+            probscl.append(prob)
+        trials=20
+        likelihodd=0
+        while(trials>0):
+            wprec=copy.deepcopy(ww)
+            ww=expect(np.unique(clustering.labels_))
+            b=True
+            for i in range(len(ww)):
+                b=b and (np.array_equal(ww[i],wprec[i]))
+                if (np.array_equal(ww[i],wprec[i])):
+                    print("True")
+            print(b)
+            max(np.unique(clustering.labels_))
+            p=np.zeros((totelementcount,clusteredvalues[0].shape[1]))
+            for j in range(len(np.unique(clustering.labels_))):
+                n = norm(meanvalues[i], stddevs[i])
+                pdf = n.pdf(xsa)
+                p+=(probscl[0]*pdf)
+            computedlikelihodd=np.sum(np.prod(p,axis=0))
+            if computedlikelihodd>=likelihodd:
+                likelihodd=computedlikelihodd
+                trials=20
+            else:
+                trials-=1
+        results=np.zeros((totelementcount,len(np.unique(clustering.labels_))))
+        for i in range(len(np.unique(clustering.labels_))):
+            n = norm(meanvalues[i], stddevs[i])
+            pdf = n.pdf(xsa)
+        return results
 
 
 class Point:
