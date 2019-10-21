@@ -41,9 +41,9 @@ class TopicWriter:
          "the", "and", "but", "if", "or", "because", "as", "until", "while", "of", "at", "by", "for", "with", "about",
          "against", "between", "into", "through", "during", "before", "after", "above", "below", "to", "from", "up",
          "down", "in", "out", "on", "off", "over", "under", "again", "further", "then", "once", "here", "there", "when",
-         "where", "why", "how", "all", "any", "both", "each", "few", "more", "most", "other", "some", "such", "no",
-         "nor", "not", "only", "own", "same", "so", "than", "too", "very", "s", "t", "can", "will", "just", "don",
-         "should", "now",'aren', 'couldn', 'didn', 'doesn', 'hadn', 'hasn', 'haven', 'isn', 'let', 'll', 'mustn', 'nan', 'negative', 'shan', 'shouldn', 've', 'wasn', 'weren', 'won', 'wouldn'])
+         "where", "why", "how", "all", "any", "both", "each", "few", "more", "most", "other", "some", "such","only", "own", "same", "so", "than", "too", "very", "s", "t", "can", "will", "just", "don",
+         "should", "now", 've', 'let', 'll','re',"etc"])
+    negationstopset=set(['aren', 'couldn', 'didn', 'doesn', 'hadn', 'hasn', 'haven', 'isn','mustn', 'nan', 'negative', 'shan', 'shouldn', 'wasn', 'weren', 'won', 'wouldn', "no", "nor", "not"])
     punctuation_list = ['+', ',', '.', ';', ':', '!', '"', '?', '-', '_', '(', ')', "'"]
     def getTokensCleanStopset(self, raw_corpus, stopset,limit):
         list_of_list_of_tokens = [[word for word in document.lower().split() if word not in stopset]
@@ -118,7 +118,6 @@ class TopicWriter:
         return raw_corpus
     def getStopwords(self, stopset):
         stopwords = set(STOPWORDS)
-        stopwords.update(["Nan", "Negative", "etc"])
         stopwords.update(stopset)
         return stopwords
     def display_save_wordcloud(self, wordcloud, display=False, save=False,path=None):
@@ -185,6 +184,16 @@ class TopicWriter:
         stopwords = self.getStopwords(self.stopset)
         stwfromtfidf=list(TfidfVectorizer(stop_words='english').get_stop_words())
         stopwords=set(list(stopwords)+stwfromtfidf)
+        negation = False
+        if negation:
+            for w in self.negationstopset:
+                stopwords.add(w)
+        else:
+            for w in self.negationstopset:
+                try:
+                    stopwords.remove(w)
+                except:
+                    None#word already not in stopwords
         for emotion in ['Good','Bad']:
             print("begin " + emotion)
             for keyword in list(keywords.keys()):
@@ -227,8 +236,9 @@ class TopicWriter:
                                           path='resources/wordclouds/notinclundingkeyword/' + keyword + '_' + emotion.lower() + '/'+nat+'_wordcloud.png')'''
     def doKaggle(self,raw_corpus,stopwords,keyword,emotion):
         # https://www.kaggle.com/michaelcwang2/topic-modeling-for-hotel-review
-        list_of_list_of_tokens = list(self.sent_to_words(raw_corpus))
+        list_of_list_of_tokens = list(self.sent_to_words(raw_corpus))#tokenization+remove punctuation
         list_of_list_of_tokens_no_stopwords=[[tok for tok in l if tok not in stopwords and tok!=keyword] for l in list_of_list_of_tokens]
+        print(stopwords)
         if len(list_of_list_of_tokens)==0 or len(list_of_list_of_tokens_no_stopwords)==0:return
         # https://spacy.io/usage/processing-pipelines
         nlp = spacy.load('en', disable=['parser', 'ner'])
@@ -338,10 +348,11 @@ class TopicWriter:
         #print(df_document_topics.data)
 
         # start K-means analysis here
+        print("doing csv")
         kmeans,clustering=self.kmeans(df_document_topic,num_trial_clusters=15)
-        em=self.EM(clustering,kmeans)
-        kmeans.to_csv(path_or_buf='resources/topics/clusterings/notincludingkeyword/' + keyword + '_' + emotion + '.csv', sep='|')
-        '''# Topic-Keyword Matrix
+        #em=self.EM(clustering,kmeans)
+        kmeans.to_csv(path_or_buf='resources/topics/clusterings/notincludingkeyword/withnegation/' + keyword + '_' + emotion + '.csv', sep='|')
+        # Topic-Keyword Matrix
         df_topic_keywords = pd.DataFrame(
             lda_model.components_ / lda_model.components_.sum(axis=1)[:, np.newaxis])
         # Assign Column and Index
@@ -351,6 +362,7 @@ class TopicWriter:
         # View
         #df_topic_keywords.head(15)
         # Show top n keywords for each topic
+        print("saving words per topic")
         topic_keywords = self.show_lda_topics(lda_model=lda_model, n_words=10,
                                               df_topic_keywords=df_topic_keywords)
         # Topic - Keywords Dataframe
@@ -358,8 +370,8 @@ class TopicWriter:
         df_topic_keywords.columns = ['Word ' + str(i) for i in range(df_topic_keywords.shape[1])]
         df_topic_keywords.index = ['Topic ' + str(i) for i in range(df_topic_keywords.shape[0])]
         #print(df_topic_keywords)
-        pd.concat([df_document_topic, df_topic_keywords]).to_csv(path_or_buf='resources/topics/notincludingkeyword/' + keyword + '_' + emotion + '.csv',sep='|')
-        '''
+        pd.concat([df_document_topic, df_topic_keywords]).to_csv(path_or_buf='resources/topics/notincludingkeyword/withnegation' + keyword + '_' + emotion + '.csv',sep='|')
+
         # lda = LatentDirichletAllocation(n_components=no_topics, max_iter=5, learning_method='online', learning_offset=50.,random_state=0).fit(tf)
         # Topic-Keyword matrix
         # tf_topic_keywords=pd.DataFrame(lda.components_/lda.components_.sum(axis=1)[:,np.newaxis])
