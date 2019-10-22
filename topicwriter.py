@@ -203,7 +203,7 @@ class TopicWriter:
                 for k in raw_corpus_by_nation.keys():
                     if len(raw_corpus_by_nation[k])<100:
                         todeletenations.append(k)
-                raw_corpus=[r for r in raw_corpus if r[1] not in todeletenations][:1000]
+                raw_corpus=[r for r in raw_corpus if r[1] not in todeletenations]
                 corpus = self.getCorpusTextFromRaw(raw_corpus)
                 self.doKaggle(corpus, stopwords,keyword,emotion)
                 # self.doBasicGensim(originfile,corpus)
@@ -235,7 +235,7 @@ class TopicWriter:
         # https://www.kaggle.com/michaelcwang2/topic-modeling-for-hotel-review
         list_of_list_of_tokens = list(self.sent_to_words(raw_corpus))#tokenization+remove punctuation
         list_of_list_of_tokens_no_stopwords=[[tok for tok in l if tok not in stopwords and tok!=keyword] for l in list_of_list_of_tokens]
-        print(stopwords)
+        #print(stopwords)
         if len(list_of_list_of_tokens)==0 or len(list_of_list_of_tokens_no_stopwords)==0:return
         # https://spacy.io/usage/processing-pipelines
         nlp = spacy.load('en', disable=['parser', 'ner'])
@@ -337,9 +337,9 @@ class TopicWriter:
         #Transform data X according to the fitted model.
         lda_output = lda_model.fit_transform(tfidf)
         # Log Likelyhood: Higher the better
-        print("Log Likelihood: ", lda_model.score(tfidf))
+        #print("Log Likelihood: ", lda_model.score(tfidf))
         # Perplexity: Lower the better. Perplexity = exp(-1. * log-likelihood per word)
-        print("Perplexity: ", lda_model.perplexity(tfidf))
+        #print("Perplexity: ", lda_model.perplexity(tfidf))
 
         df_document_topic,df_document_topics,topicnames=self.buildpddataframedoctop(lda_model,data_lemmatized,lda_output)
         #print(df_document_topics.data)
