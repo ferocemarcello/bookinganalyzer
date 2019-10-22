@@ -25,8 +25,6 @@ from math import sqrt
 import seaborn as sns;sns.set()  # for plot styling
 import numpy as np
 from sklearn.metrics import silhouette_score
-import pyLDAvis as pyLDAvis
-import pyLDAvis.sklearn
 import os
 
 class TopicWriter:
