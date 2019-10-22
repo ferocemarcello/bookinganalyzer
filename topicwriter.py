@@ -5,7 +5,6 @@ import math
 import matplotlib
 from scipy.stats import norm
 import helper
-import fasttext
 from collections import defaultdict
 import gensim
 from gensim import corpora
