@@ -17,4 +17,5 @@ if __name__ == '__main__':
     #lemm.lemm.stemlemmatizer("booking_keywords.txt")
     #csvwriter.do("booking_keywords.txt")
     #wordwriter.wordwriter.write("booking_keywords.txt")
-    topicwriter.TopicWriter().do("booking_keywords.txt")
+    #topicwriter.TopicWriter().do("booking_keywords.txt")
+    print("this is a test")
