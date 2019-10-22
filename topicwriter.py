@@ -242,7 +242,7 @@ class TopicWriter:
         if len(list_of_list_of_tokens)==0 or len(list_of_list_of_tokens_no_stopwords)==0:return
         # https://spacy.io/usage/processing-pipelines
         nlp = spacy.load('en', disable=['parser', 'ner'])
-        #spacy.load("en_core_web_sm",disable=['parser', 'ner'])
+        #nlp =spacy.load("en_core_web_sm",disable=['parser', 'ner'])
         data_lemmatized = self.lemmatization(list_of_list_of_tokens_no_stopwords, nlp,#list of lists of tokens->list of strings
                                              allowed_postags=['NOUN', 'ADJ', 'VERB', 'ADV'])
         # NMF is able to use tf-idf
@@ -370,7 +370,7 @@ class TopicWriter:
         df_topic_keywords.columns = ['Word ' + str(i) for i in range(df_topic_keywords.shape[1])]
         df_topic_keywords.index = ['Topic ' + str(i) for i in range(df_topic_keywords.shape[0])]
         #print(df_topic_keywords)
-        pd.concat([df_document_topic, df_topic_keywords]).to_csv(path_or_buf='resources/topics/notincludingkeyword/withnegation' + keyword + '_' + emotion + '.csv',sep='|')
+        pd.concat([df_document_topic, df_topic_keywords],sort=False).to_csv(path_or_buf='resources/topics/notincludingkeyword/withnegation/' + keyword + '_' + emotion + '.csv',sep='|')
 
         # lda = LatentDirichletAllocation(n_components=no_topics, max_iter=5, learning_method='online', learning_offset=50.,random_state=0).fit(tf)
         # Topic-Keyword matrix
