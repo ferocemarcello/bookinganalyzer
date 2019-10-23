@@ -150,7 +150,8 @@ class TopicWriter:
     def show_lda_topics(self,lda_model=None, n_words=20,df_topic_keywords=None):
         keywords = np.array(df_topic_keywords.columns)
         topic_keywords = []
-        for topic_weights in lda_model.components_:
+        newcomps=lda_model.components_ / lda_model.components_.sum(axis=1)[:, np.newaxis]
+        for topic_weights in newcomps:
             top_keyword_locs = (-topic_weights).argsort()[:n_words]
             kw=keywords.take(top_keyword_locs)
             w=topic_weights.take(top_keyword_locs)
@@ -335,7 +336,8 @@ class TopicWriter:
         plt.show()'''
         # Create Document - Topic Matrix
         #Transform data X according to the fitted model.
-        lda_output = lda_model.fit_transform(tfidf)
+        lda_output = lda_model.fit_transform(tfidf)#lda_ouput shape= (n_sentences,n_topics)
+                                                    #lda_model shape after fit transform=(n_topics,n_words detected)
         # Log Likelyhood: Higher the better
         #print("Log Likelihood: ", lda_model.score(tfidf))
         # Perplexity: Lower the better. Perplexity = exp(-1. * log-likelihood per word)
@@ -345,13 +347,26 @@ class TopicWriter:
         #print(df_document_topics.data)
 
         # start K-means analysis here
-        print("doing csv")
+        print("doing kmeans")
         kmeans,clustering=self.kmeans(df_document_topic,num_trial_clusters=15)
         #em=self.EM(clustering,kmeans)
         kmeans.to_csv(path_or_buf='resources/topics/clusterings/notincludingkeyword/withnegation/' + keyword + '_' + emotion + '.csv', sep='|')
         # Topic-Keyword Matrix
+        f=0
+        s=0
+        for i in range(len(lda_model.components_[0])):
+            if lda_model.components_[0][i]>f:
+                f=lda_model.components_[0][i]
+                s=i
+        print(f)
+        print(tfidf_vectorizer.get_feature_names()[s])
         df_topic_keywords = pd.DataFrame(
             lda_model.components_ / lda_model.components_.sum(axis=1)[:, np.newaxis])
+        #Variational parameters for topic word distribution. Since the complete conditional for
+        # topic word distribution is a Dirichlet, components_[i, j] can be viewed as pseudocount that
+        # represents the number of times word j was assigned to topic i.
+        #It can also be viewed as distribution over the words for each topic after normalization:
+
         # Assign Column and Index
         #df_topic_keywords.columns = tf_vectorizer.get_feature_names()
         df_topic_keywords.columns = tfidf_vectorizer.get_feature_names()
