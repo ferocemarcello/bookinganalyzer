@@ -245,18 +245,18 @@ class TopicWriter:
                                              allowed_postags=['NOUN', 'ADJ', 'VERB', 'ADV'])
         # NMF is able to use tf-idf
         #tfidf_vectorizer = TfidfVectorizer(stop_words='english')#Convert a collection of raw documents to a matrix of TF-IDF features. Equivalent to CountVectorizer followed by TfidfTransformer.
-        tfidf_vectorizer = TfidfVectorizer(stop_words=stopwords)  # Convert a collection of raw documents to a matrix of TF-IDF features. Equivalent to CountVectorizer followed by TfidfTransformer.
-        tfidf = tfidf_vectorizer.fit_transform(data_lemmatized)#Learn vocabulary and idf, return term-document matrix.
-        tfidf_feature_names = tfidf_vectorizer.get_feature_names()#Array mapping from feature integer indices to feature name
+        #tfidf_vectorizer = TfidfVectorizer(stop_words=stopwords)  # Convert a collection of raw documents to a matrix of TF-IDF features. Equivalent to CountVectorizer followed by TfidfTransformer.
+        #tfidf = tfidf_vectorizer.fit_transform(data_lemmatized)#Learn vocabulary and idf, return term-document matrix.
+        #tfidf_feature_names = tfidf_vectorizer.get_feature_names()#Array mapping from feature integer indices to feature name
         # LDA can only use raw term counts for LDA because it is a probabilistic graphical model
-        '''tf_vectorizer = CountVectorizer(analyzer='word',##############Convert a collection of text documents to a matrix of token counts
+        tf_vectorizer = CountVectorizer(analyzer='word',##############Convert a collection of text documents to a matrix of token counts
                                         min_df=10,  # minimum read occurences of a word
-                                        stop_words='english',  # remove stop words
+                                        stop_words=stopwords,  # remove stop words
                                         lowercase=True,  # convert all words to lowercase
                                         token_pattern='[a-zA-Z0-9]{2,}',  # num chars > 2
                                         )
         tf = tf_vectorizer.fit_transform(data_lemmatized)
-        tf_feature_names = tf_vectorizer.get_feature_names()'''
+        tf_feature_names = tf_vectorizer.get_feature_names()
         '''
         # Materialize the sparse data
         data_dense = tf.todense()#Return a dense matrix representation of this matrix.'''
@@ -336,8 +336,10 @@ class TopicWriter:
         plt.show()'''
         # Create Document - Topic Matrix
         #Transform data X according to the fitted model.
-        lda_output = lda_model.fit_transform(tfidf)#lda_ouput shape= (n_sentences,n_topics)
+        #lda_output = lda_model.fit_transform(tfidf)#lda_ouput shape= (n_sentences,n_topics)
                                                     #lda_model shape after fit transform=(n_topics,n_words detected)
+        lda_output = lda_model.fit_transform(tf)  # lda_ouput shape= (n_sentences,n_topics)
+                                                        # lda_model shape after fit transform=(n_topics,n_words detected)
         # Log Likelyhood: Higher the better
         #print("Log Likelihood: ", lda_model.score(tfidf))
         # Perplexity: Lower the better. Perplexity = exp(-1. * log-likelihood per word)
@@ -350,7 +352,7 @@ class TopicWriter:
         print("doing kmeans")
         kmeans,clustering=self.kmeans(df_document_topic,num_trial_clusters=15)
         #em=self.EM(clustering,kmeans)
-        kmeans.to_csv(path_or_buf='resources/topics/clusterings/notincludingkeyword/withnegation/' + keyword + '_' + emotion + '.csv', sep='|')
+        kmeans.to_csv(path_or_buf='resources/topics/tf/clusterings/notincludingkeyword/withnegation/' + keyword + '_' + emotion + '.csv', sep='|')
         # Topic-Keyword Matrix
         df_topic_keywords = pd.DataFrame(
             lda_model.components_ / lda_model.components_.sum(axis=1)[:, np.newaxis])
@@ -360,8 +362,8 @@ class TopicWriter:
         #It can also be viewed as distribution over the words for each topic after normalization:
 
         # Assign Column and Index
-        #df_topic_keywords.columns = tf_vectorizer.get_feature_names()
-        df_topic_keywords.columns = tfidf_vectorizer.get_feature_names()
+        df_topic_keywords.columns = tf_vectorizer.get_feature_names()
+        #df_topic_keywords.columns = tfidf_vectorizer.get_feature_names()
         df_topic_keywords.index = topicnames
         # View
         #df_topic_keywords.head(15)
@@ -374,7 +376,7 @@ class TopicWriter:
         df_topic_keywords.columns = ['Word ' + str(i) for i in range(df_topic_keywords.shape[1])]
         df_topic_keywords.index = ['Topic ' + str(i) for i in range(df_topic_keywords.shape[0])]
         #print(df_topic_keywords)
-        pd.concat([df_document_topic, df_topic_keywords],sort=False).to_csv(path_or_buf='resources/topics/notincludingkeyword/withnegation/' + keyword + '_' + emotion + '.csv',sep='|')
+        pd.concat([df_document_topic, df_topic_keywords],sort=False).to_csv(path_or_buf='resources/topics/tf/notincludingkeyword/withnegation/' + keyword + '_' + emotion + '.csv',sep='|')
 
         # lda = LatentDirichletAllocation(n_components=no_topics, max_iter=5, learning_method='online', learning_offset=50.,random_state=0).fit(tf)
         # Topic-Keyword matrix
