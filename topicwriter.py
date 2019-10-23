@@ -352,14 +352,6 @@ class TopicWriter:
         #em=self.EM(clustering,kmeans)
         kmeans.to_csv(path_or_buf='resources/topics/clusterings/notincludingkeyword/withnegation/' + keyword + '_' + emotion + '.csv', sep='|')
         # Topic-Keyword Matrix
-        f=0
-        s=0
-        for i in range(len(lda_model.components_[0])):
-            if lda_model.components_[0][i]>f:
-                f=lda_model.components_[0][i]
-                s=i
-        print(f)
-        print(tfidf_vectorizer.get_feature_names()[s])
         df_topic_keywords = pd.DataFrame(
             lda_model.components_ / lda_model.components_.sum(axis=1)[:, np.newaxis])
         #Variational parameters for topic word distribution. Since the complete conditional for
