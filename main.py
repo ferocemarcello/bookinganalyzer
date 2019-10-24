@@ -1,4 +1,6 @@
 import csvwriter
+import gensimlda
+import gensimtutlsi
 
 import lemm
 import topicwriter
@@ -17,9 +19,10 @@ if __name__ == '__main__':
     #lemm.lemm.stemlemmatizer("booking_keywords.txt")
     #csvwriter.do("booking_keywords.txt")
     #wordwriter.wordwriter.write("booking_keywords.txt")
-    for t in ['tfidf','tf']:
+    gensimlda.do()
+    '''for t in ['tfidf','tf']:
         for k in ['notincludingkeyword','includingkeyword']:
             for n in ['withnegation','nonegation']:
                 print('doing '+t+'-'+k+'-'+n)
                 topicwriter.TopicWriter().do("booking_keywords.txt", tf=t, includingkeword=k,
-                                             negation=n)
+                                             negation=n)'''
