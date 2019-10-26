@@ -95,24 +95,6 @@ class TopicWriter:
                 nat_dict_count[row[1]]+=1
         csv_file.close()
         return nat_dict_count
-    def getRawCorpus(self, csv_file,all=False):
-        raw_corpus = []
-        reader = csv.reader(csv_file, delimiter='|', quotechar='"')
-        i = 0
-        if all:
-            for row in reader:
-                i += 1
-                if i % 50000 == 0:
-                    print('reading sentence ' + str(i))
-                raw_corpus.append(row)
-        else:
-            for row in reader:
-                i += 1
-                if i % 50000 == 0:
-                    print('reading sentence ' + str(i))
-                raw_corpus.append(row[2])
-        csv_file.close()
-        return raw_corpus
     def getStopwords(self, stopset):
         stopwords = set(STOPWORDS)
         stopwords.update(stopset)
@@ -165,14 +147,6 @@ class TopicWriter:
         # Display the generated image:
         # the matplotlib way:
         self.display_save_wordcloud(wordcloud, display=display, save=save,path=path)
-    def cluster_raw_corpus_by_nation(self, raw_corpus):
-        raw_corpus_by_nation={}
-        for r in raw_corpus:
-            if r[1]!='':
-                if r[1] not in raw_corpus_by_nation.keys():
-                    raw_corpus_by_nation[r[1]]=[]
-                raw_corpus_by_nation[r[1]].append(r)
-        return raw_corpus_by_nation
     def get_raw_corpus_nat(self, nat, raw_corpus_by_nation):
         reviews=raw_corpus_by_nation[nat]
         return reviews
@@ -195,16 +169,10 @@ class TopicWriter:
             print("begin " + emotion)
             for keyword in list(keywords.keys()):
                 print(keyword)
-                raw_corpus = self.getRawCorpus(
+                raw_corpus = helper.getRawCorpus(
                     csv_file=open('resources/csvs/' + keyword + '_' + emotion.lower() + '.csv', mode='r',
                                   encoding="utf8", newline='\n'),all=True)
-                raw_corpus_by_nation = self.cluster_raw_corpus_by_nation(raw_corpus)
-                todeletenations=[]
-                for k in raw_corpus_by_nation.keys():
-                    if len(raw_corpus_by_nation[k])<100:
-                        todeletenations.append(k)
-                raw_corpus=[r for r in raw_corpus if r[1] not in todeletenations]
-                corpus = self.getCorpusTextFromRaw(raw_corpus)
+                corpus=helper.preprocessRawCorpus(raw_corpus,thresholdcountpernation=100)
                 self.doKaggle(corpus, stopwords, keyword, emotion, tfname=tf, includingkeywordname=includingkeword, negationname=negation)
                 # self.doBasicGensim(originfile,corpus)
                 # self.doTWds(originfile,corpus)
@@ -496,10 +464,6 @@ class TopicWriter:
         df_document_topic_k=df_document_topic_k.sort_values(by=['cluster'])
         #valueslabels=np.append(values, clustering.labels_.reshape(clustering.labels_.shape[0],1), axis=1)
         return df_document_topic_k,clustering
-
-    def getCorpusTextFromRaw(self, raw_corpus):
-        rev_only = [r[2] for r in raw_corpus]
-        return rev_only
 
     def getBestLdaModel(self,tf):
         # Define Search Param
