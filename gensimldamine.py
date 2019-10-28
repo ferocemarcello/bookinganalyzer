@@ -129,7 +129,15 @@ def computetopacc(top_topics):
     for i in combins:
         top1=[w[1] for w in ((top_topics[i[0]])[:-1])[0]]
         top2 = [w[1] for w in ((top_topics[i[1]])[:-1])[0]]
-        # postag=nltk.pos_tag([w[1] for w in tops])
+        postag=nltk.pos_tag([w for w in top1])
+        for tag in postag:
+            if tag[1] in ['JJ','JJR','JJS']:
+                top1.remove(tag[0])
+        postag = nltk.pos_tag([w for w in top2])
+        for tag in postag:
+            if tag[1] in ['JJ', 'JJR', 'JJS']:
+                top2.remove(tag[0])
+        print(len(top1)==len(top2))
         countcommon=0
         for w in top1:
             if w in top2:
@@ -139,10 +147,10 @@ def computetopacc(top_topics):
 
 cc=[]
 def savemodel(model,keyword,emotion,corpus):
-    if not os.path.exists('resources/gensim/' + keyword + '_' + emotion.lower() + '/'):
-        os.makedirs('resources/gensim/' + keyword + '_' + emotion.lower() + '/')
-    model.save('resources/gensim/' + keyword + '_' + emotion.lower() + '/' + keyword + '_' + emotion.lower())
-    csv_file = open('resources/gensim/' + keyword + '_' + emotion.lower() + '/' + keyword + '_' + emotion.lower()+'.csv', mode='w', encoding="utf8",
+    if not os.path.exists('resources/gensim/noadj/' + keyword + '_' + emotion.lower() + '/'):
+        os.makedirs('resources/gensim/noadj/' + keyword + '_' + emotion.lower() + '/')
+    model.save('resources/gensim/noadj/' + keyword + '_' + emotion.lower() + '/' + keyword + '_' + emotion.lower())
+    csv_file = open('resources/gensim/noadj/' + keyword + '_' + emotion.lower() + '/' + keyword + '_' + emotion.lower()+'.csv', mode='w', encoding="utf8",
                     newline='\n')
     for top in model.top_topics(corpus):
         writer = csv.writer(csv_file, delimiter='|', quotechar='"', quoting=csv.QUOTE_MINIMAL)
@@ -154,9 +162,9 @@ def savemodel(model,keyword,emotion,corpus):
 
 def do(originfile):
     keywords = helper.getKeywords(originfile)
-    for emotion in ['Bad']:
+    for emotion in ['Good','Bad']:
         print("begin " + emotion)
-        for keyword in list(keywords.keys())[6:]:
+        for keyword in keywords.keys():
             start_time = time.time()
             print(keyword)
             raw_corpus = helper.getRawCorpus(
@@ -339,7 +347,7 @@ def do(originfile):
 
             bestacc=-1
             bestmodel=None
-            if len(raw_corpus)>0:
+            if len(corpus)>0:
                 print("starting training and checking with different number of topics")
                 for numt in range(2,21):
 
