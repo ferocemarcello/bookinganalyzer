@@ -154,9 +154,9 @@ def savemodel(model,keyword,emotion,corpus):
 
 def do(originfile):
     keywords = helper.getKeywords(originfile)
-    for emotion in ['Good', 'Bad']:
+    for emotion in ['Bad']:
         print("begin " + emotion)
-        for keyword in keywords.keys():
+        for keyword in list(keywords.keys())[6:]:
             start_time = time.time()
             print(keyword)
             raw_corpus = helper.getRawCorpus(
@@ -339,61 +339,62 @@ def do(originfile):
 
             bestacc=-1
             bestmodel=None
-            print("starting training and checking with different number of topics")
-            for numt in range(2,21):
+            if len(raw_corpus)>0:
+                print("starting training and checking with different number of topics")
+                for numt in range(2,21):
 
-                # Set training parameters.
-                num_topics = numt
-                chunksize = 2000
-                passes = 20
-                iterations = 400
-                eval_every = None  # Don't evaluate model perplexity, takes too much time.
+                    # Set training parameters.
+                    num_topics = numt
+                    chunksize = 2000
+                    passes = 20
+                    iterations = 400
+                    eval_every = None  # Don't evaluate model perplexity, takes too much time.
 
-                # Make a index to word dictionary.
-                temp = dictionary[0]  # This is only to "load" the dictionary.
-                id2word = dictionary.id2token
+                    # Make a index to word dictionary.
+                    temp = dictionary[0]  # This is only to "load" the dictionary.
+                    id2word = dictionary.id2token
 
-                model = LdaModel(
-                    corpus=corpus,
-                    id2word=id2word,
-                    chunksize=chunksize,
-                    alpha='auto',
-                    eta='auto',
-                    iterations=iterations,
-                    num_topics=num_topics,
-                    passes=passes,
-                    eval_every=eval_every
-                )
+                    model = LdaModel(
+                        corpus=corpus,
+                        id2word=id2word,
+                        chunksize=chunksize,
+                        alpha='auto',
+                        eta='auto',
+                        iterations=iterations,
+                        num_topics=num_topics,
+                        passes=passes,
+                        eval_every=eval_every
+                    )
 
-                ###############################################################################
-                # We can compute the topic coherence of each topic. Below we display the
-                # average topic coherence and print the topics in order of topic coherence.
-                #
-                # Note that we use the "Umass" topic coherence measure here (see
-                # :py:func:`gensim.models.ldamodel.LdaModel.top_topics`), Gensim has recently
-                # obtained an implementation of the "AKSW" topic coherence measure (see
-                # accompanying blog post, http://rare-technologies.com/what-is-topic-coherence/).
-                #
-                # If you are familiar with the subject of the articles in this dataset, you can
-                # see that the topics below make a lot of sense. However, they are not without
-                # flaws. We can see that there is substantial overlap between some topics,
-                # others are hard to interpret, and most of them have at least some terms that
-                # seem out of place. If you were able to do better, feel free to share your
-                # methods on the blog at http://rare-technologies.com/lda-training-tips/ !
-                #
+                    ###############################################################################
+                    # We can compute the topic coherence of each topic. Below we display the
+                    # average topic coherence and print the topics in order of topic coherence.
+                    #
+                    # Note that we use the "Umass" topic coherence measure here (see
+                    # :py:func:`gensim.models.ldamodel.LdaModel.top_topics`), Gensim has recently
+                    # obtained an implementation of the "AKSW" topic coherence measure (see
+                    # accompanying blog post, http://rare-technologies.com/what-is-topic-coherence/).
+                    #
+                    # If you are familiar with the subject of the articles in this dataset, you can
+                    # see that the topics below make a lot of sense. However, they are not without
+                    # flaws. We can see that there is substantial overlap between some topics,
+                    # others are hard to interpret, and most of them have at least some terms that
+                    # seem out of place. If you were able to do better, feel free to share your
+                    # methods on the blog at http://rare-technologies.com/lda-training-tips/ !
+                    #
 
-                top_topics = model.top_topics(corpus)  # , num_words=20)
-                acc=computetopacc(top_topics)
-                if acc>bestacc:
-                    print("found better model with number of topics: "+str(model.num_topics))
-                    bestacc=acc
-                    bestmodel=copy.deepcopy(model)
-                # Average topic coherence is the sum of topic coherences of all topics, divided by the number of topics.
-                avg_topic_coherence = sum([t[1] for t in top_topics]) / num_topics
-                cc.append(avg_topic_coherence)
-                print('Average topic coherence: %.4f.' % avg_topic_coherence)
-            savemodel(bestmodel, keyword, emotion, corpus)
-            print(str(time.time() - start_time)+' seconds to compute '+keyword+' '+emotion)
+                    top_topics = model.top_topics(corpus)  # , num_words=20)
+                    acc=computetopacc(top_topics)
+                    if acc>bestacc:
+                        print("found better model with number of topics: "+str(model.num_topics))
+                        bestacc=acc
+                        bestmodel=copy.deepcopy(model)
+                    # Average topic coherence is the sum of topic coherences of all topics, divided by the number of topics.
+                    avg_topic_coherence = sum([t[1] for t in top_topics]) / num_topics
+                    cc.append(avg_topic_coherence)
+                    print('Average topic coherence: %.4f.' % avg_topic_coherence)
+                savemodel(bestmodel, keyword, emotion, corpus)
+                print(str(time.time() - start_time)+' seconds to compute '+keyword+' '+emotion)
 
     ###############################################################################
     # Things to experiment with
