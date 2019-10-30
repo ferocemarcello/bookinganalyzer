@@ -10,7 +10,7 @@ import csv
 import logging
 import time
 from statistics import mean
-
+import spacy
 import nltk
 from sklearn.feature_extraction.text import TfidfVectorizer
 
@@ -125,25 +125,33 @@ def computetopacc(top_topics):
     comb = combinations(range(len(top_topics)), 2)
     countdiff=[]
     combins=list(comb)
-    nwords=len(top_topics[0][0])
+    nwords=[]
+    nlp = spacy.load("en_core_web_sm")
     for i in combins:
         top1=[w[1] for w in ((top_topics[i[0]])[:-1])[0]]
         top2 = [w[1] for w in ((top_topics[i[1]])[:-1])[0]]
-        postag=nltk.pos_tag([w for w in top1])
-        for tag in postag:
-            if tag[1] in ['JJ','JJR','JJS']:
-                top1.remove(tag[0])
-        postag = nltk.pos_tag([w for w in top2])
-        for tag in postag:
-            if tag[1] in ['JJ', 'JJR', 'JJS']:
-                top2.remove(tag[0])
-        print(len(top1)==len(top2))
+        toremove1=[]
+        toremove2 = []
+        for w in top1:
+            wdoc = nlp(w)
+            if wdoc[0].pos_=='ADJ':
+                toremove1.append(w)
+        for w in toremove1:
+            top1.remove(w)
+        for w in top2:
+            wdoc = nlp(w)
+            if wdoc[0].pos_ == 'ADJ':
+                toremove2.append(w)
+        for w in toremove2:
+            top2.remove(w)
         countcommon=0
+        minw=min(len(top1),len(top2))
+        nwords.append(minw)
         for w in top1:
             if w in top2:
                 countcommon+=1
-        countdiff.append(nwords-countcommon)
-    return mean(countdiff)/nwords
+        countdiff.append(minw-countcommon)
+    return mean(countdiff)/mean(nwords)
 
 cc=[]
 def savemodel(model,keyword,emotion,corpus):
@@ -171,7 +179,7 @@ def do(originfile):
                 csv_file=open('resources/csvs/' + keyword + '_' + emotion.lower() + '.csv', mode='r',
                               encoding="utf8", newline='\n'), all=True)
             print("starting preprocessing")
-            corpus=helper.preprocessRawCorpus(raw_corpus,thresholdcountpernation=100)
+            corpus=helper.preprocessRawCorpus(raw_corpus[:1000],thresholdcountpernation=100)
 
             ###############################################################################
             # So we have a list of 1740 documents, where each document is a Unicode string.
