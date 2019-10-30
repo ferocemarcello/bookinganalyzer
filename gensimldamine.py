@@ -179,7 +179,7 @@ def do(originfile):
                 csv_file=open('resources/csvs/' + keyword + '_' + emotion.lower() + '.csv', mode='r',
                               encoding="utf8", newline='\n'), all=True)
             print("starting preprocessing")
-            corpus=helper.preprocessRawCorpus(raw_corpus[:1000],thresholdcountpernation=100)
+            corpus=helper.preprocessRawCorpus(raw_corpus,thresholdcountpernation=100)
 
             ###############################################################################
             # So we have a list of 1740 documents, where each document is a Unicode string.
