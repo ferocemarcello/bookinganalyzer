@@ -155,18 +155,25 @@ def computetopacc(top_topics):
 
 cc=[]
 def savemodel(model,keyword,emotion,corpus):
-    if not os.path.exists('resources/gensim/noadj/' + keyword + '_' + emotion.lower() + '/'):
-        os.makedirs('resources/gensim/noadj/' + keyword + '_' + emotion.lower() + '/')
+    if not os.path.exists('resources/gensim/noadj/cleaned/' + keyword + '_' + emotion.lower() + '/'):
+        os.makedirs('resources/gensim/noadj/cleaned/' + keyword + '_' + emotion.lower() + '/')
     model.save('resources/gensim/noadj/' + keyword + '_' + emotion.lower() + '/' + keyword + '_' + emotion.lower())
-    csv_file = open('resources/gensim/noadj/' + keyword + '_' + emotion.lower() + '/' + keyword + '_' + emotion.lower()+'.csv', mode='w', encoding="utf8",
+    csv_file = open('resources/gensim/noadj/cleaned/' + keyword + '_' + emotion.lower() + '/' + keyword + '_' + emotion.lower()+'.csv', mode='w', encoding="utf8",
                     newline='\n')
+    cooc = dict()
+    for top in model.top_topics(corpus):
+        for w in top[0]:
+            if w[1] in cooc.keys():
+                cooc[w[1]]+=1
+            else:
+                cooc[w[1]]=1
     for top in model.top_topics(corpus):
         writer = csv.writer(csv_file, delimiter='|', quotechar='"', quoting=csv.QUOTE_MINIMAL)
         l=top[0]
+        l=[w for w in l if cooc[w[1]]==1]
         l.append(top[1])
         writer.writerow(l)
     csv_file.close()
-
 
 def do(originfile):
     keywords = helper.getKeywords(originfile)
@@ -179,7 +186,7 @@ def do(originfile):
                 csv_file=open('resources/csvs/' + keyword + '_' + emotion.lower() + '.csv', mode='r',
                               encoding="utf8", newline='\n'), all=True)
             print("starting preprocessing")
-            corpus=helper.preprocessRawCorpus(raw_corpus,thresholdcountpernation=100)
+            corpus=helper.preprocessRawCorpus(raw_corpus[:1000],thresholdcountpernation=100)
 
             ###############################################################################
             # So we have a list of 1740 documents, where each document is a Unicode string.
@@ -357,7 +364,7 @@ def do(originfile):
             bestmodel=None
             if len(corpus)>0:
                 print("starting training and checking with different number of topics")
-                for numt in range(2,21):
+                for numt in range(2,4):
 
                     # Set training parameters.
                     num_topics = numt
