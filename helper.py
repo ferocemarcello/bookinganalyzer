@@ -43,7 +43,6 @@ def getCorpusTextFromRaw(raw_corpus):
     rev_only = [r[2] for r in raw_corpus]
     return rev_only
 
-
 def preprocessRawCorpus(raw_corpus,thresholdcountpernation=100):
     raw_corpus_by_nation = cluster_raw_corpus_by_nation(raw_corpus)
     todeletenations = []
