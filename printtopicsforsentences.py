@@ -26,29 +26,33 @@ def getStopwords(stopset):
     return stopwords
 def saveweightedtopspersent(originfile):
     keywords = helper.getKeywords(originfile)
-    for emotion in ['Good','Bad']:
+    for emotion in ['Good','Bad'][1:]:
         print("begin " + emotion)
-        for keyword in keywords.keys():
+        for keyword in list(keywords.keys())[6:]:
             print(keyword)
             path='resources/gensim/noadj/not_cleaned/' + keyword + '_' + emotion.lower()+'/'+keyword+'_'+emotion.lower()
-            lda = LdaModel.load(path)
-            raw_corpus = helper.getRawCorpus(
-                csv_file=open('resources/csvs/' + keyword + '_' + emotion.lower() + '.csv', mode='r',
-                              encoding="utf8", newline='\n'), all=True)
-            stopwords = getStopwords(stopset)
-            stwfromtfidf = list(TfidfVectorizer(stop_words='english').get_stop_words())
-            bow, dictionary,corpus = documentprocessor.fullpreprocessrawcorpustobow(raw_corpus, stopwords, stwfromtfidf,
-                                                                                negationstopset)
-            if not os.path.exists('resources/gensim/noadj/outputtopsdocs/'):
-                os.makedirs('resources/gensim/noadj/outputtopsdocs/')
-            csv_file = open(
-                'resources/gensim/noadj/outputtopsdocs/' + keyword + '_' + emotion.lower()+'.csv',
-                mode='w', encoding="utf8",
-                newline='\n')
-            i = 0
-            for val in lda.get_document_topics(bow):
-                s=(corpus[i],val)
-                writer = csv.writer(csv_file, delimiter='|', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-                writer.writerow(s)
-                i+=1
-            csv_file.close()
+            try:
+                lda = LdaModel.load(path)
+                raw_corpus = helper.getRawCorpus(
+                    csv_file=open('resources/csvs/' + keyword + '_' + emotion.lower() + '.csv', mode='r',
+                                  encoding="utf8", newline='\n'), all=True)
+                stopwords = getStopwords(stopset)
+                stwfromtfidf = list(TfidfVectorizer(stop_words='english').get_stop_words())
+                bow, dictionary, corpus = documentprocessor.fullpreprocessrawcorpustobow(raw_corpus, stopwords,
+                                                                                         stwfromtfidf,
+                                                                                         negationstopset)
+                if not os.path.exists('resources/gensim/noadj/outputtopsdocs/'):
+                    os.makedirs('resources/gensim/noadj/outputtopsdocs/')
+                csv_file = open(
+                    'resources/gensim/noadj/outputtopsdocs/' + keyword + '_' + emotion.lower() + '.csv',
+                    mode='w', encoding="utf8",
+                    newline='\n')
+                i = 0
+                for val in lda.get_document_topics(bow):
+                    s = (corpus[i], val)
+                    writer = csv.writer(csv_file, delimiter='|', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+                    writer.writerow(s)
+                    i += 1
+                csv_file.close()
+            except:
+                None
