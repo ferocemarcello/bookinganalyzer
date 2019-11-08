@@ -3,7 +3,7 @@ from mysql.connector import ProgrammingError
 
 
 class db_connection:
-    def __init__(self,user='root',password='mining',host='127.0.0.1',database='masterthesis',usepure=True):
+    def __init__(self,user='masteruser',password='mining',host='127.0.0.1',database='masterthesis',usepure=True):
         self.config={
         'user': user,
         'password': password,
