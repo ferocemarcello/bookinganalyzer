@@ -54,5 +54,5 @@ def saveweightedtopspersent(originfile):
                     writer.writerow(raw_corpus[i]+s)
                     i += 1
                 csv_file.close()
-            except:
-                print("model not found")
+            except Exception as e:
+                print(e)
