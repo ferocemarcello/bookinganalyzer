@@ -171,8 +171,8 @@ class TopicWriter:
                 print(keyword)
                 raw_corpus = helper.getRawCorpus(
                     csv_file=open('resources/csvs/' + keyword + '_' + emotion.lower() + '.csv', mode='r',
-                                  encoding="utf8", newline='\n'),all=True)
-                corpus=helper.preprocessRawCorpus(raw_corpus,thresholdcountpernation=100)
+                                  encoding="utf8", newline='\n'), id_and_country=True)
+                raw_corpus,corpus=helper.preprocessRawCorpus(raw_corpus,thresholdcountpernation=100)
                 self.doKaggle(corpus, stopwords, keyword, emotion, tfname=tf, includingkeywordname=includingkeword, negationname=negation)
                 # self.doBasicGensim(originfile,corpus)
                 # self.doTWds(originfile,corpus)

@@ -185,11 +185,11 @@ def do(originfile):
             print(keyword)
             raw_corpus = helper.getRawCorpus(
                 csv_file=open('resources/csvs/' + keyword + '_' + emotion.lower() + '.csv', mode='r',
-                              encoding="utf8", newline='\n'), all=True)
+                              encoding="utf8", newline='\n'), id_and_country=True)
             print("starting preprocessing")
             stopwords = getStopwords(stopset)
             stwfromtfidf = list(TfidfVectorizer(stop_words='english').get_stop_words())
-            bow,dictionary,corpus=documentprocessor.fullpreprocessrawcorpustobow(raw_corpus, stopwords, stwfromtfidf, negationstopset)
+            bow,dictionary,corpus,raw_corpus=documentprocessor.fullpreprocessrawcorpustobow(raw_corpus, stopwords, stwfromtfidf, negationstopset)
 
             ###############################################################################
             # Let's see how many tokens and documents we have to train on.

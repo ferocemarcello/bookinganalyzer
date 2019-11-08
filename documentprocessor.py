@@ -2,7 +2,7 @@ import helper
 
 
 def fullpreprocessrawcorpustobow(raw_corpus, stopwords, stwfromtfidf, negationstopset):
-    corpus = helper.preprocessRawCorpus(raw_corpus, thresholdcountpernation=100)
+    raw_corpus,corpus = helper.preprocessRawCorpus(raw_corpus, thresholdcountpernation=100)
 
     ###############################################################################
     # So we have a list of 1740 documents, where each document is a Unicode string.
@@ -116,4 +116,4 @@ def fullpreprocessrawcorpustobow(raw_corpus, stopwords, stwfromtfidf, negationst
     # Bag-of-words representation of the documents.
     print("converting to vectors with doc2bow")
     bow = [dictionary.doc2bow(doc) for doc in corpus]
-    return bow,dictionary,corpus
+    return bow,dictionary,corpus,raw_corpus

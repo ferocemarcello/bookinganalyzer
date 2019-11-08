@@ -1,5 +1,7 @@
 import csv
 
+from db import db_connection, db_operator
+
 
 def getKeywords(originfile):
     keywords = {}
@@ -13,11 +15,25 @@ def getKeywords(originfile):
         fs.close()
     f.close()
     return keywords
-def getRawCorpus(csv_file,all=False):
+def getRawCorpus(csv_file, id_and_country=False, additionaldetails=False):
     raw_corpus = []
     reader = csv.reader(csv_file, delimiter='|', quotechar='"')
     i = 0
-    if all:
+    if additionaldetails:
+        db = db_connection()
+        queryexecutor = db_operator(db)
+        db.connect()
+        for row in reader:
+            i += 1
+            if i % 50000 == 0:
+                print('reading sentence ' + str(i))
+            id=row[0]
+            query = 'SELECT HotelNumber, FamilyType FROM masterthesis.reviews WHERE ReviewID='+id
+            det = queryexecutor.execute(query=query)
+            raw_corpus.append(row+list(det[0]))
+        db.disconnect()
+        return raw_corpus
+    if id_and_country:
         for row in reader:
             i += 1
             if i % 50000 == 0:
@@ -51,4 +67,4 @@ def preprocessRawCorpus(raw_corpus,thresholdcountpernation=100):
             todeletenations.append(k)
     raw_corpus = [r for r in raw_corpus if r[1] not in todeletenations]
     corpus = getCorpusTextFromRaw(raw_corpus)
-    return corpus
+    return raw_corpus,corpus
