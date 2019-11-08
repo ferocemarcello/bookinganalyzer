@@ -11,6 +11,7 @@ class db_connection:
         'database': database,
         'raise_on_warnings': True,
         'use_pure': usepure,
+        'port': 3306,
     }
     def connect(self):
         self.connection = mysql.connector.connect(**self.config)
