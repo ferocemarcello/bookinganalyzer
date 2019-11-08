@@ -55,4 +55,4 @@ def saveweightedtopspersent(originfile):
                     i += 1
                 csv_file.close()
             except:
-                None
+                print("model not found")
