@@ -41,10 +41,13 @@ def saveweightedtopspersent(originfile):
                 bow, dictionary, corpus,raw_corpus= documentprocessor.fullpreprocessrawcorpustobow(raw_corpus, stopwords,
                                                                                          stwfromtfidf,
                                                                                          negationstopset)
+
                 if not os.path.exists('resources/gensim/noadj/outputtopsdocs/'):
                     os.makedirs('resources/gensim/noadj/outputtopsdocs/')
+                if not os.path.exists('resources/gensim/noadj/outputtopsdocs/'+keyword+'_'+emotion.lower()+'/'):
+                    os.makedirs('resources/gensim/noadj/outputtopsdocs/'+keyword+'_'+emotion.lower()+'/')
                 csv_file = open(
-                    'resources/gensim/noadj/outputtopsdocs/' + keyword + '_' + emotion.lower() + '.csv',
+                    'resources/gensim/noadj/outputtopsdocs/'+keyword+'_'+emotion.lower()+'/' + keyword + '_' + emotion.lower() + '.csv',
                     mode='w', encoding="utf8",
                     newline='\n')
                 i = 0
