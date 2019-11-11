@@ -6,9 +6,9 @@ import helper
 
 def dividebynation(originfile):
     keywords = helper.getKeywords(originfile)
-    for emotion in ['Bad']:
+    for emotion in ['Good','Bad']:
         print("begin " + emotion)
-        for keyword in list(keywords.keys())[6:]:
+        for keyword in keywords.keys():
             print(keyword)
             nationcluster={}
             try:
