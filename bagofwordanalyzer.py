@@ -19,9 +19,9 @@ stopset = set(
 constr_conjs=set(['although','though','even if','even though','but','yet','nevertheless','however','despite','in spite'])
 def analyze(originfile):
     keywords = helper.getKeywords(originfile)
-    for emotion in ['Good', 'Bad']:
+    for emotion in ['Bad']:
         print("begin " + emotion)
-        for keyword in keywords.keys():
+        for keyword in list(keywords.keys())[6:]:
             start_time = time.time()
             print(keyword)
             raw_corpus = helper.getRawCorpus(
@@ -89,32 +89,33 @@ def analyze(originfile):
             #
 
             # Compute bigrams.
-            from gensim.models import Phrases
-            print("doing bigrams")
-            # Add bigrams and trigrams to docs (only ones that appear 10 times or more).
-            bigram = Phrases(corpus_lemm, min_count=0.005*len(corpus_lemm))
-            for idx in range(len(corpus_lemm)):
-                for token in bigram[corpus_lemm[idx]]:
-                    if '_' in token:
-                        # Token is a bigram, add to document.
-                        corpus_lemm[idx].append(token)
-            from gensim.corpora import Dictionary
+            if len(corpus_lemm)>0:
+                from gensim.models import Phrases
+                print("doing bigrams")
+                # Add bigrams and trigrams to docs (only ones that appear 10 times or more).
+                bigram = Phrases(corpus_lemm, min_count=0.005*len(corpus_lemm))
+                for idx in range(len(corpus_lemm)):
+                    for token in bigram[corpus_lemm[idx]]:
+                        if '_' in token:
+                            # Token is a bigram, add to document.
+                            corpus_lemm[idx].append(token)
+                from gensim.corpora import Dictionary
 
-            # Create a dictionary representation of the documents.
-            dictionary = Dictionary(corpus_lemm)
+                # Create a dictionary representation of the documents.
+                dictionary = Dictionary(corpus_lemm)
 
-            alltok = []
-            freq=[]
-            for doc in corpus_lemm:
-                for tok in doc:
-                    alltok.append(tok)
-            for t in dictionary:
-                freq.append((t,dictionary.get(t),alltok.count(dictionary.get(t)),alltok.count(dictionary.get(t))/len(alltok)))
-            freq.sort(key=lambda tup: tup[2], reverse=True)
-            if not os.path.exists('resources/bow/allfreq/'):
-                os.makedirs('resources/bow/allfreq/')
-            with open('resources/bow/allfreq/'+keyword+'_'+emotion.lower()+'.txt', 'w') as f:
-                for item in freq:
-                    f.write(str(item)+'\n')
+                alltok = []
+                freq=[]
+                for doc in corpus_lemm:
+                    for tok in doc:
+                        alltok.append(tok)
+                for t in dictionary:
+                    freq.append((t,dictionary.get(t),alltok.count(dictionary.get(t)),alltok.count(dictionary.get(t))/len(alltok)))
+                freq.sort(key=lambda tup: tup[2], reverse=True)
+                if not os.path.exists('resources/bow/allfreq/'):
+                    os.makedirs('resources/bow/allfreq/')
+                with open('resources/bow/allfreq/'+keyword+'_'+emotion.lower()+'.txt', 'w') as f:
+                    for item in freq:
+                        f.write(str(item)+'\n')
             print('------------------------------------------------------')
             print(str(time.time() - start_time) + ' seconds to compute ' + keyword + ' ' + emotion)
