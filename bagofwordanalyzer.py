@@ -19,9 +19,9 @@ stopset = set(
 constr_conjs=set(['although','though','even if','even though','but','yet','nevertheless','however','despite','in spite'])
 def analyze(originfile):
     keywords = helper.getKeywords(originfile)
-    for emotion in ['Bad']:
+    for emotion in ['Good','Bad']:
         print("begin " + emotion)
-        for keyword in list(keywords.keys())[6:]:
+        for keyword in list(keywords.keys()):
             start_time = time.time()
             print(keyword)
             raw_corpus = helper.getRawCorpus(
