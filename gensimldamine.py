@@ -114,14 +114,10 @@ stopset = set(
          "where", "why", "how", "all", "any", "both", "each", "few", "more", "most", "other", "some", "such","only", "own", "same", "so", "than", "too", "very", "s", "t", "can", "will", "just", "don",
          "should", "now", 've', 'let', 'll','re',"etc"])
 negationstopset=set(['aren', 'couldn', 'didn', 'doesn', 'hadn', 'hasn', 'haven', 'isn','mustn', 'nan', 'negative', 'shan', 'shouldn', 'wasn', 'weren', 'won', 'wouldn', "no", "nor", "not"])
-
-
 def getStopwords(stopset):
     stopwords = set(STOPWORDS)
     stopwords.update(stopset)
     return stopwords
-
-
 def computetopacc(top_topics):
     comb = combinations(range(len(top_topics)), 2)
     countdiff=[]
@@ -189,7 +185,10 @@ def do(originfile):
             print("starting preprocessing")
             stopwords = getStopwords(stopset)
             stwfromtfidf = list(TfidfVectorizer(stop_words='english').get_stop_words())
-            bow,dictionary,corpus,raw_corpus=documentprocessor.fullpreprocessrawcorpustobow(raw_corpus, stopwords, stwfromtfidf, negationstopset)
+            stopwords = set(list(stopwords) + stwfromtfidf)
+            for w in negationstopset:
+                stopwords.add(w)
+            bow,dictionary,corpus,raw_corpus=documentprocessor.fullpreprocessrawcorpustobow(raw_corpus, stopwords,min_count_bigrams=20)
 
             ###############################################################################
             # Let's see how many tokens and documents we have to train on.

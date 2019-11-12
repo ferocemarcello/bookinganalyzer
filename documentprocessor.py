@@ -1,7 +1,7 @@
 import helper
 
 
-def fullpreprocessrawcorpustobow(raw_corpus, stopwords, stwfromtfidf, negationstopset):
+def fullpreprocessrawcorpustobow(raw_corpus, stopwords,min_count_bigrams):
     raw_corpus,corpus = helper.preprocessRawCorpus(raw_corpus, thresholdcountpernation=100)
 
     ###############################################################################
@@ -36,10 +36,6 @@ def fullpreprocessrawcorpustobow(raw_corpus, stopwords, stwfromtfidf, negationst
     from nltk.tokenize import RegexpTokenizer
 
     # Split the documents into tokens.
-    stopwords = set(list(stopwords) + stwfromtfidf)
-    for w in negationstopset:
-        stopwords.add(w)
-
     tokenizer = RegexpTokenizer(r'\w+')
     print("starting tokenization")
     for idx in range(len(corpus)):
@@ -84,7 +80,7 @@ def fullpreprocessrawcorpustobow(raw_corpus, stopwords, stwfromtfidf, negationst
     from gensim.models import Phrases
     print("doing bigrams")
     # Add bigrams and trigrams to docs (only ones that appear 20 times or more).
-    bigram = Phrases(corpus, min_count=20)
+    bigram = Phrases(corpus, min_count=min_count_bigrams)
     for idx in range(len(corpus)):
         for token in bigram[corpus[idx]]:
             if '_' in token:

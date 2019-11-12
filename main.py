@@ -7,7 +7,7 @@ import lemm
 import topicscoreanalyzer
 import topicwriter
 import wordwriter
-
+import bagofwordanalyzer
 if __name__ == '__main__':
 
     keywords=[]
@@ -23,7 +23,8 @@ if __name__ == '__main__':
     #wordwriter.wordwriter.write("booking_keywords.txt")
     #gensimldamine.do('booking_keywords.txt')
     #printtopicsforsentences.saveweightedtopspersent('booking_keywords.txt')
-    topicscoreanalyzer.dividebynation('booking_keywords.txt')
+    #topicscoreanalyzer.dividebynation('booking_keywords.txt')
+    bagofwordanalyzer.analyze('booking_keywords.txt')
     '''for t in ['tfidf','tf']:
         for k in ['notincludingkeyword','includingkeyword']:
             for n in ['withnegation','nonegation']:
