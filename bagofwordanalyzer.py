@@ -1,4 +1,5 @@
 import os
+import string
 import time
 
 import spacy
@@ -26,7 +27,7 @@ def analyze(originfile):
             print(keyword)
             raw_corpus = helper.getRawCorpus(
                 csv_file=open('resources/csvs/' + keyword + '_' + emotion.lower() + '.csv', mode='r',
-                              encoding="utf8", newline='\n'), id_and_country=True)
+                              encoding="utf8", newline='\n'), id_and_country=True,additionaldetails=True)
             corpus = helper.getCorpusTextFromRaw(raw_corpus)
 
             stopwords = gensimldamine.getStopwords(stopset)
@@ -36,30 +37,14 @@ def analyze(originfile):
                 stopwords.add(w)
             for doc in corpus:
                 for con in constr_conjs:
-                    if con in doc:
+                    if con in doc.lower():
                         corpus.remove(doc)
                         break
-
-            '''from nltk.tokenize import RegexpTokenizer
-
-            # Split the documents into tokens.
-            tokenizer = RegexpTokenizer(r'\w+')
-            print("starting tokenization")
-            for idx in range(len(corpus)):
-                corpus[idx] = corpus[idx].lower()  # Convert to lowercase.
-                corpus[idx] = tokenizer.tokenize(corpus[idx])  # Split into words.
-                corpus[idx] = [tok for tok in corpus[idx] if tok not in stopwords]
-            # Remove numbers, but not words that contain numbers.
-            corpus = [[token for token in doc if not token.isnumeric()] for doc in corpus]
-
-            # Remove words that are shorter than 3 characters.
-            corpus = [[token for token in doc if len(token) > 2] for doc in corpus]'''
 
             #take only nouns
             nlp = spacy.load("en_core_web_sm")
             #corpus=[[token for token in doc if nlp(token)[0].pos_=='NOUN']for doc in corpus[:100]]
-            corpus_filt = [[tok for tok in nlp(doc) if tok.pos_ in['NOUN','PROPN']] for doc in corpus]
-            corpus_filt = [[str(tok).lower() for tok in doc if tok not in stopwords] for doc in corpus_filt]
+            corpus_filt = [[str(tok).translate(str.maketrans('', '', string.punctuation)) for tok in nlp(doc) if tok.pos_ in['NOUN','PROPN'] and (tok.lower() not in stopwords) and len(tok)>1] for doc in corpus]
             ###############################################################################
             # We use the WordNet lemmatizer from NLTK. A lemmatizer is preferred over a
             # stemmer in this case because it produces more readable words. Output that is
@@ -93,7 +78,7 @@ def analyze(originfile):
                 from gensim.models import Phrases
                 print("doing bigrams")
                 # Add bigrams and trigrams to docs (only ones that appear 10 times or more).
-                bigram = Phrases(corpus_lemm, min_count=0.005*len(corpus_lemm))
+                bigram = Phrases(corpus_lemm, min_count=0.001*len(corpus_lemm))
                 for idx in range(len(corpus_lemm)):
                     for token in bigram[corpus_lemm[idx]]:
                         if '_' in token:
@@ -117,5 +102,6 @@ def analyze(originfile):
                 with open('resources/bow/allfreq/'+keyword+'_'+emotion.lower()+'.txt', 'w') as f:
                     for item in freq:
                         f.write(str(item)+'\n')
+
             print('------------------------------------------------------')
             print(str(time.time() - start_time) + ' seconds to compute ' + keyword + ' ' + emotion)

@@ -38,9 +38,10 @@ def saveweightedtopspersent(originfile):
                                   encoding="utf8", newline='\n'), id_and_country=True, additionaldetails=True)
                 stopwords = getStopwords(stopset)
                 stwfromtfidf = list(TfidfVectorizer(stop_words='english').get_stop_words())
-                bow, dictionary, corpus,raw_corpus= documentprocessor.fullpreprocessrawcorpustobow(raw_corpus, stopwords,
-                                                                                         stwfromtfidf,
-                                                                                         negationstopset)
+                stopwords = set(list(stopwords) + stwfromtfidf)
+                for w in negationstopset:
+                    stopwords.add(w)
+                bow, dictionary, corpus,raw_corpus= documentprocessor.fullpreprocessrawcorpustobow(raw_corpus, stopwords,min_count_bigrams=20)
 
                 if not os.path.exists('resources/gensim/noadj/outputtopsdocs/'):
                     os.makedirs('resources/gensim/noadj/outputtopsdocs/')
