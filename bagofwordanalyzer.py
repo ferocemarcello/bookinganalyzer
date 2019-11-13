@@ -1,4 +1,5 @@
 import os
+import re
 import string
 import time
 
@@ -35,16 +36,23 @@ def analyze(originfile):
             stopwords = set(list(stopwords) + stwfromtfidf)
             for w in negationstopset:
                 stopwords.add(w)
-            for doc in corpus:
+            torem=[]
+            for i in range(len(corpus)):
+                corpus[i]=re.sub('[^A-Za-z0-9]+', '', corpus[i])
+                #corpus[i]=corpus[i].translate(str.maketrans('', '', string.punctuation)).lower()
                 for con in constr_conjs:
-                    if con in doc.lower():
-                        corpus.remove(doc)
+                    if con in corpus[i].lower():
+                        torem.append(i)
                         break
+            for i in sorted(torem, reverse=True):
+                del corpus[i]
 
             #take only nouns
             nlp = spacy.load("en_core_web_sm")
             #corpus=[[token for token in doc if nlp(token)[0].pos_=='NOUN']for doc in corpus[:100]]
-            corpus_filt = [[(str(tok).translate(str.maketrans('', '', string.punctuation))).lower() for tok in nlp(doc) if tok.pos_ in['NOUN','PROPN'] and (str(tok).lower() not in stopwords) and len(str(tok))>1 and not str(tok).isnumeric()] for doc in corpus]
+            corpus_filt = [
+                [str(tok) for tok in nlp(doc) if
+                 tok.pos_ in ['NOUN', 'PROPN'] and (str(tok) not in stopwords) and not str(tok).isnumeric()] for doc in corpus]
             ###############################################################################
             # We use the WordNet lemmatizer from NLTK. A lemmatizer is preferred over a
             # stemmer in this case because it produces more readable words. Output that is
@@ -56,7 +64,7 @@ def analyze(originfile):
 
             print("starting lemmatization")
             lemmatizer = WordNetLemmatizer()
-            corpus_lemm = [[lemmatizer.lemmatize(token) for token in doc] for doc in corpus_filt]
+            corpus_lemm = [[lemmatizer.lemmatize(token) for token in doc if len(lemmatizer.lemmatize(token))>1] for doc in corpus_filt]
 
             ###############################################################################
             # We find bigrams in the documents. Bigrams are sets of two adjacent words.
@@ -97,6 +105,8 @@ def analyze(originfile):
                 for t in dictionary:
                     freq.append((t,dictionary.get(t),alltok.count(dictionary.get(t)),alltok.count(dictionary.get(t))/len(alltok)))
                 freq.sort(key=lambda tup: tup[2], reverse=True)
+                for i in range(len(freq)):
+                    freq[i]=tuple(list(freq[i])+[i])
                 if not os.path.exists('resources/bow/allfreq/'):
                     os.makedirs('resources/bow/allfreq/')
                 with open('resources/bow/allfreq/'+keyword+'_'+emotion.lower()+'.txt', 'w') as f:
