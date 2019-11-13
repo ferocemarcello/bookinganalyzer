@@ -50,9 +50,9 @@ def analyze(originfile):
             #take only nouns
             nlp = spacy.load("en_core_web_sm")
             #corpus=[[token for token in doc if nlp(token)[0].pos_=='NOUN']for doc in corpus[:100]]
-            corpus_filt = [
-                [re.sub('[^A-Za-z0-9]+', '', str(tok)) for tok in nlp(doc) if
-                 tok.pos_ in ['NOUN', 'PROPN'] and (str(tok) not in stopwords) and not str(tok).isnumeric()] for doc in corpus]
+            corpus_filt = [#re.sub('[^A-Za-z0-9]+', '', str(tok)
+                [re.sub('[^A-Za-z]+', '', str(tok)) for tok in nlp(doc) if
+                 tok.pos_ in ['NOUN', 'PROPN'] and (str(tok) not in stopwords)] for doc in corpus]
             ###############################################################################
             # We use the WordNet lemmatizer from NLTK. A lemmatizer is preferred over a
             # stemmer in this case because it produces more readable words. Output that is
@@ -64,8 +64,14 @@ def analyze(originfile):
 
             print("starting lemmatization")
             lemmatizer = WordNetLemmatizer()
+            from spellchecker import SpellChecker
+            spell = SpellChecker()
             corpus_lemm = [[lemmatizer.lemmatize(token) for token in doc if len(lemmatizer.lemmatize(token))>1] for doc in corpus_filt]
-
+            for i in range(len(corpus_lemm)):
+                for j in range(len(corpus_lemm[i])):
+                    cor=spell.correction(corpus_lemm[i][j])
+                    if cor.isalpha():
+                        corpus_lemm[i][j]=cor
             ###############################################################################
             # We find bigrams in the documents. Bigrams are sets of two adjacent words.
             # Using bigrams we can get phrases like "machine_learning" in our output
