@@ -44,7 +44,7 @@ def analyze(originfile):
             #take only nouns
             nlp = spacy.load("en_core_web_sm")
             #corpus=[[token for token in doc if nlp(token)[0].pos_=='NOUN']for doc in corpus[:100]]
-            corpus_filt = [[str(tok).translate(str.maketrans('', '', string.punctuation)) for tok in nlp(doc) if tok.pos_ in['NOUN','PROPN'] and (str(tok).lower() not in stopwords) and len(str(tok))>1] for doc in corpus]
+            corpus_filt = [[(str(tok).translate(str.maketrans('', '', string.punctuation))).lower() for tok in nlp(doc) if tok.pos_ in['NOUN','PROPN'] and (str(tok).lower() not in stopwords) and len(str(tok))>1 and not str(tok).isnumeric()] for doc in corpus]
             ###############################################################################
             # We use the WordNet lemmatizer from NLTK. A lemmatizer is preferred over a
             # stemmer in this case because it produces more readable words. Output that is
