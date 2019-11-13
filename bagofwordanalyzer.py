@@ -38,10 +38,10 @@ def analyze(originfile):
                 stopwords.add(w)
             torem=[]
             for i in range(len(corpus)):
-                corpus[i]=re.sub('[^A-Za-z0-9]+', '', corpus[i])
+                corpus[i]=corpus[i].lower()
                 #corpus[i]=corpus[i].translate(str.maketrans('', '', string.punctuation)).lower()
                 for con in constr_conjs:
-                    if con in corpus[i].lower():
+                    if con in corpus[i]:
                         torem.append(i)
                         break
             for i in sorted(torem, reverse=True):
@@ -51,7 +51,7 @@ def analyze(originfile):
             nlp = spacy.load("en_core_web_sm")
             #corpus=[[token for token in doc if nlp(token)[0].pos_=='NOUN']for doc in corpus[:100]]
             corpus_filt = [
-                [str(tok) for tok in nlp(doc) if
+                [re.sub('[^A-Za-z0-9]+', '', str(tok)) for tok in nlp(doc) if
                  tok.pos_ in ['NOUN', 'PROPN'] and (str(tok) not in stopwords) and not str(tok).isnumeric()] for doc in corpus]
             ###############################################################################
             # We use the WordNet lemmatizer from NLTK. A lemmatizer is preferred over a
