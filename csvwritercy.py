@@ -54,7 +54,6 @@ def thread_function(threadnumber,sentencelist):
 
             toaddsents.append([row[0], row[1], sent])
     print(str(len(toaddsents)))
-
 def thread_function_row_only(row):
     sent = row[2]
     lan = identifier.classify(sent)[0]
@@ -74,7 +73,6 @@ def thread_function_row_only(row):
 def init_globals(cnt):
     global counter
     counter = cnt
-
 def do(originfile):
     start_time = time.time()
     db = db_connection()

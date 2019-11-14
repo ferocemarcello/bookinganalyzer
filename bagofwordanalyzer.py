@@ -2,7 +2,8 @@ import os
 import re
 import string
 import time
-
+import multiprocessing as mp
+import nltk
 import spacy
 from sklearn.feature_extraction.text import TfidfVectorizer
 import helper
@@ -21,6 +22,7 @@ stopset = set(
 constr_conjs=set(['although','though','even if','even though','but','yet','nevertheless','however','despite','in spite'])
 def analyze(originfile):
     keywords = helper.getKeywords(originfile)
+    print("Number of processors: ", mp.cpu_count())
     for emotion in ['Good','Bad']:
         print("begin " + emotion)
         for keyword in list(keywords.keys()):
@@ -37,41 +39,41 @@ def analyze(originfile):
             for w in negationstopset:
                 stopwords.add(w)
             torem=[]
+            from nltk import word_tokenize
+            from spellchecker import SpellChecker
+            spell = SpellChecker()
             for i in range(len(corpus)):
+                rem=False
                 corpus[i]=corpus[i].lower()
-                #corpus[i]=corpus[i].translate(str.maketrans('', '', string.punctuation)).lower()
                 for con in constr_conjs:
                     if con in corpus[i]:
                         torem.append(i)
+                        rem=True
                         break
+                if not rem:
+                    toks=word_tokenize(corpus[i])
+                    cors=[]
+                    for tok in toks:
+                        sub=re.sub('[^A-Za-z]+', ' ', tok)
+                        cor=spell.correction(sub).split(' ')
+                        for i in range(len(cor)):
+                            if not cor[i].isalpha():
+                                cor[i]=tok
+                            cors.append(cor[i])
+                    corpus[i]=' '.join(cors)
             for i in sorted(torem, reverse=True):
                 del corpus[i]
 
             #take only nouns
             nlp = spacy.load("en_core_web_sm")
-            #corpus=[[token for token in doc if nlp(token)[0].pos_=='NOUN']for doc in corpus[:100]]
-            corpus_filt = [#re.sub('[^A-Za-z0-9]+', '', str(tok)
-                [re.sub('[^A-Za-z]+', '', str(tok)) for tok in nlp(doc) if
-                 tok.pos_ in ['NOUN', 'PROPN'] and (str(tok) not in stopwords)] for doc in corpus]
-            ###############################################################################
-            # We use the WordNet lemmatizer from NLTK. A lemmatizer is preferred over a
-            # stemmer in this case because it produces more readable words. Output that is
-            # easy to read is very desirable in topic modelling.
-            #
-
-            # Lemmatize the documents.
             from nltk.stem.wordnet import WordNetLemmatizer
-
-            print("starting lemmatization")
             lemmatizer = WordNetLemmatizer()
-            from spellchecker import SpellChecker
-            spell = SpellChecker()
-            corpus_lemm = [[lemmatizer.lemmatize(token) for token in doc if len(lemmatizer.lemmatize(token))>1] for doc in corpus_filt]
-            for i in range(len(corpus_lemm)):
-                for j in range(len(corpus_lemm[i])):
-                    cor=spell.correction(corpus_lemm[i][j])
-                    if cor.isalpha():
-                        corpus_lemm[i][j]=cor
+            #corpus=[[token for token in doc if nlp(token)[0].pos_=='NOUN']for doc in corpus[:100]]
+            corpus_filt_spacy = [#re.sub('[^A-Za-z0-9]+', '', str(tok))
+                [lemmatizer.lemmatize(str(tok)) for tok in nlp(doc) if
+                 tok.pos_=='NOUN' and (str(tok) not in stopwords)] for doc in corpus]
+            for i in range(len(corpus_filt_spacy)):
+                corpus_filt_spacy[i]=list(filter(lambda x: len(x) > 1 and x.isalpha(), corpus_filt_spacy[i]))
             ###############################################################################
             # We find bigrams in the documents. Bigrams are sets of two adjacent words.
             # Using bigrams we can get phrases like "machine_learning" in our output
@@ -88,24 +90,24 @@ def analyze(originfile):
             #
 
             # Compute bigrams.
-            if len(corpus_lemm)>0:
+            if len(corpus_filt_spacy)>0:
                 from gensim.models import Phrases
                 print("doing bigrams")
                 # Add bigrams and trigrams to docs (only ones that appear 10 times or more).
-                bigram = Phrases(corpus_lemm, min_count=0.001*len(corpus_lemm))
-                for idx in range(len(corpus_lemm)):
-                    for token in bigram[corpus_lemm[idx]]:
+                bigram = Phrases(corpus_filt_spacy, min_count=0.001*len(corpus_filt_spacy))
+                for idx in range(len(corpus_filt_spacy)):
+                    for token in bigram[corpus_filt_spacy[idx]]:
                         if '_' in token:
                             # Token is a bigram, add to document.
-                            corpus_lemm[idx].append(token)
+                            corpus_filt_spacy[idx].append(token)
                 from gensim.corpora import Dictionary
 
                 # Create a dictionary representation of the documents.
-                dictionary = Dictionary(corpus_lemm)
+                dictionary = Dictionary(corpus_filt_spacy)
 
                 alltok = []
                 freq=[]
-                for doc in corpus_lemm:
+                for doc in corpus_filt_spacy:
                     for tok in doc:
                         alltok.append(tok)
                 for t in dictionary:
