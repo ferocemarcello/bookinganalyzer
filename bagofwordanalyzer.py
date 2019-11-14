@@ -8,6 +8,11 @@ import spacy
 from sklearn.feature_extraction.text import TfidfVectorizer
 import helper
 import gensimldamine
+from nltk.stem.wordnet import WordNetLemmatizer
+from gensim.models import Phrases
+from nltk import word_tokenize
+from spellchecker import SpellChecker
+from multiprocessing import Value
 negationstopset=set(['aren', 'couldn', 'didn', 'doesn', 'hadn', 'hasn', 'haven', 'isn','mustn', 'nan', 'negative', 'shan', 'shouldn', 'wasn', 'weren', 'won', 'wouldn', "no", "nor", "not"])
 stopset = set(
         ["i", "me", "my", "myself", "we", "our", "ours", "ourselves", "you", "your", "yours", "yourself", "yourselves",
@@ -20,6 +25,28 @@ stopset = set(
          "where", "why", "how", "all", "any", "both", "each", "few", "more", "most", "other", "some", "such","only", "own", "same", "so", "than", "too", "very", "s", "t", "can", "will", "just", "don",
          "should", "now", 've', 'let', 'll','re',"etc"])
 constr_conjs=set(['although','though','even if','even though','but','yet','nevertheless','however','despite','in spite'])
+def init_globals(cnt,spl):
+    global counter
+    global spell
+    counter = cnt
+    spell=spl
+def thread_function_row_only(row):
+    row= row.lower()
+    counter.value+=1
+    for con in constr_conjs:
+        if con in row:
+            return ""
+    toks = word_tokenize(row)
+    cors = []
+    for tok in toks:
+        sub = re.sub('[^A-Za-z]+', ' ', tok)
+        cor = spell.correction(sub).split(' ')
+        for i in range(len(cor)):
+            if not cor[i].isalpha():
+                cor[i] = tok
+            cors.append(cor[i])
+    row= ' '.join(cors)
+    return row
 def analyze(originfile):
     keywords = helper.getKeywords(originfile)
     print("Number of processors: ", mp.cpu_count())
@@ -32,46 +59,26 @@ def analyze(originfile):
                 csv_file=open('resources/csvs/' + keyword + '_' + emotion.lower() + '.csv', mode='r',
                               encoding="utf8", newline='\n'), id_and_country=True,additionaldetails=True)
             corpus = helper.getCorpusTextFromRaw(raw_corpus)
-
             stopwords = gensimldamine.getStopwords(stopset)
             stwfromtfidf = list(TfidfVectorizer(stop_words='english').get_stop_words())
             stopwords = set(list(stopwords) + stwfromtfidf)
             for w in negationstopset:
                 stopwords.add(w)
-            torem=[]
-            from nltk import word_tokenize
-            from spellchecker import SpellChecker
-            spell = SpellChecker()
-            for i in range(len(corpus)):
-                rem=False
-                corpus[i]=corpus[i].lower()
-                for con in constr_conjs:
-                    if con in corpus[i]:
-                        torem.append(i)
-                        rem=True
-                        break
-                if not rem:
-                    toks=word_tokenize(corpus[i])
-                    cors=[]
-                    for tok in toks:
-                        sub=re.sub('[^A-Za-z]+', ' ', tok)
-                        cor=spell.correction(sub).split(' ')
-                        for i in range(len(cor)):
-                            if not cor[i].isalpha():
-                                cor[i]=tok
-                            cors.append(cor[i])
-                    corpus[i]=' '.join(cors)
-            for i in sorted(torem, reverse=True):
-                del corpus[i]
-
-            #take only nouns
             nlp = spacy.load("en_core_web_sm")
-            from nltk.stem.wordnet import WordNetLemmatizer
             lemmatizer = WordNetLemmatizer()
+            spell = SpellChecker()
+            counter = Value('i', 0)
+            pool = mp.Pool(initializer=init_globals, processes=mp.cpu_count() * 2, initargs=(counter,spell,), )
+            corpus = pool.map_async(thread_function_row_only, [doc for doc in corpus]).get()
+            pool.close()
+            pool.join()
+            corpus = [r for r in corpus if r != ""]
+            #take only nouns
             #corpus=[[token for token in doc if nlp(token)[0].pos_=='NOUN']for doc in corpus[:100]]
+            print("doing pos tagging")
             corpus_filt_spacy = [#re.sub('[^A-Za-z0-9]+', '', str(tok))
                 [lemmatizer.lemmatize(str(tok)) for tok in nlp(doc) if
-                 tok.pos_=='NOUN' and (str(tok) not in stopwords)] for doc in corpus]
+                 tok.pos_ == 'NOUN' and (str(tok) not in stopwords)] for doc in corpus]
             for i in range(len(corpus_filt_spacy)):
                 corpus_filt_spacy[i]=list(filter(lambda x: len(x) > 1 and x.isalpha(), corpus_filt_spacy[i]))
             ###############################################################################
@@ -91,7 +98,6 @@ def analyze(originfile):
 
             # Compute bigrams.
             if len(corpus_filt_spacy)>0:
-                from gensim.models import Phrases
                 print("doing bigrams")
                 # Add bigrams and trigrams to docs (only ones that appear 10 times or more).
                 bigram = Phrases(corpus_filt_spacy, min_count=0.001*len(corpus_filt_spacy))
@@ -120,6 +126,7 @@ def analyze(originfile):
                 with open('resources/bow/allfreq/'+keyword+'_'+emotion.lower()+'.txt', 'w') as f:
                     for item in freq:
                         f.write(str(item)+'\n')
+                    f.close()
 
             print('------------------------------------------------------')
             print(str(time.time() - start_time) + ' seconds to compute ' + keyword + ' ' + emotion)

@@ -25,7 +25,7 @@ def getRawCorpus(csv_file, id_and_country=False, additionaldetails=False):
         db.connect()
         for row in reader:
             i += 1
-            if i % 50000 == 0:
+            if i % 1000 == 0:
                 print('reading sentence ' + str(i))
                 break
             id=row[0]
