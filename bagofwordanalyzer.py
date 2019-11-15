@@ -36,7 +36,7 @@ def init_globals(cnt,spl,nlpw):
 def thread_function_row_only(row):
     row=row.lower()
     counter.value+=1
-    if counter.value%500==0:
+    if counter.value%100==0:
         print(str(counter.value))
     for con in constr_conjs:
         if con in row:
