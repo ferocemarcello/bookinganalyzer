@@ -5,6 +5,7 @@ LDA Model
 Introduces Gensim's LDA model and demonstrates its use on the NIPS corpus.
 
 """
+
 import copy
 import csv
 import logging
@@ -13,7 +14,6 @@ from statistics import mean
 import spacy
 import nltk
 from sklearn.feature_extraction.text import TfidfVectorizer
-
 import documentprocessor
 import helper
 

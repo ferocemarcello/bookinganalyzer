@@ -5,6 +5,7 @@ import time
 import multiprocessing as mp
 import nltk
 import spacy
+from pycorenlp import StanfordCoreNLP
 from sklearn.feature_extraction.text import TfidfVectorizer
 import helper
 import gensimldamine
@@ -25,28 +26,25 @@ stopset = set(
          "where", "why", "how", "all", "any", "both", "each", "few", "more", "most", "other", "some", "such","only", "own", "same", "so", "than", "too", "very", "s", "t", "can", "will", "just", "don",
          "should", "now", 've', 'let', 'll','re',"etc"])
 constr_conjs=set(['although','though','even if','even though','but','yet','nevertheless','however','despite','in spite'])
-def init_globals(cnt,spl):
+def init_globals(cnt,spl,nlpw):
     global counter
     global spell
+    global nlp_wrapper
     counter = cnt
     spell=spl
+    nlp_wrapper=nlpw
 def thread_function_row_only(row):
-    row= row.lower()
+    row=row.lower()
     counter.value+=1
+    if counter.value%500==0:
+        print(str(counter.value))
     for con in constr_conjs:
         if con in row:
-            return ""
-    toks = word_tokenize(row)
-    cors = []
-    for tok in toks:
-        sub = re.sub('[^A-Za-z]+', ' ', tok)
-        cor = spell.correction(sub).split(' ')
-        for i in range(len(cor)):
-            if not cor[i].isalpha():
-                cor[i] = tok
-            cors.append(cor[i])
-    row= ' '.join(cors)
-    return row
+            return None
+    toks=[spell.correction(tok['lemma']) for tok in
+          nlp_wrapper.annotate(row,properties={'annotators': 'lemma, pos','outputFormat': 'json','timeout': 100000,})['sentences'][0]['tokens']
+          if tok['pos'] in ['NNS','NN'] and len(tok['lemma'])>1]
+    return toks
 def analyze(originfile):
     keywords = helper.getKeywords(originfile)
     print("Number of processors: ", mp.cpu_count())
@@ -59,28 +57,25 @@ def analyze(originfile):
                 csv_file=open('resources/csvs/' + keyword + '_' + emotion.lower() + '.csv', mode='r',
                               encoding="utf8", newline='\n'), id_and_country=True,additionaldetails=True)
             corpus = helper.getCorpusTextFromRaw(raw_corpus)
-            stopwords = gensimldamine.getStopwords(stopset)
-            stwfromtfidf = list(TfidfVectorizer(stop_words='english').get_stop_words())
-            stopwords = set(list(stopwords) + stwfromtfidf)
-            for w in negationstopset:
-                stopwords.add(w)
-            nlp = spacy.load("en_core_web_sm")
-            lemmatizer = WordNetLemmatizer()
             spell = SpellChecker()
-            counter = Value('i', 0)
-            pool = mp.Pool(initializer=init_globals, processes=mp.cpu_count() * 2, initargs=(counter,spell,), )
-            corpus = pool.map_async(thread_function_row_only, [doc for doc in corpus]).get()
+            counter = Value('i', 1)
+            import os
+            os.chdir('./resources/stanford-corenlp-full-2018-10-05')
+            os.system('kill $(lsof -t -i:9000)')
+            import subprocess
+            cmd = 'java -mx4g -cp "*" edu.stanford.nlp.pipeline.StanfordCoreNLPServer -annotators "tokenize,ssplit,pos,lemma,parse,sentiment" -port 9000 -timeout 26000 &'
+            with open(os.devnull, "w") as f:
+                subprocess.call(cmd, shell=True, stderr=f,stdout=f)
+                os.chdir('../../')
+                nlp_wrapper = StanfordCoreNLP('http://localhost:9000')
+                pool = mp.Pool(initializer=init_globals, processes=mp.cpu_count() * 2, initargs=(counter,spell,nlp_wrapper,), )
+                time.sleep(1)
+                corpus_tok = pool.map_async(thread_function_row_only, [doc for doc in corpus]).get()
+            f.close()
             pool.close()
             pool.join()
-            corpus = [r for r in corpus if r != ""]
-            #take only nouns
-            #corpus=[[token for token in doc if nlp(token)[0].pos_=='NOUN']for doc in corpus[:100]]
-            print("doing pos tagging")
-            corpus_filt_spacy = [#re.sub('[^A-Za-z0-9]+', '', str(tok))
-                [lemmatizer.lemmatize(str(tok)) for tok in nlp(doc) if
-                 tok.pos_ == 'NOUN' and (str(tok) not in stopwords)] for doc in corpus]
-            for i in range(len(corpus_filt_spacy)):
-                corpus_filt_spacy[i]=list(filter(lambda x: len(x) > 1 and x.isalpha(), corpus_filt_spacy[i]))
+            print("beginning removal of sents with contrast")
+            corpus_tok = [r for r in corpus_tok if r != None]
             ###############################################################################
             # We find bigrams in the documents. Bigrams are sets of two adjacent words.
             # Using bigrams we can get phrases like "machine_learning" in our output
@@ -95,25 +90,24 @@ def analyze(originfile):
             #     Computing n-grams of large dataset can be very computationally
             #     and memory intensive.
             #
-
             # Compute bigrams.
-            if len(corpus_filt_spacy)>0:
+            if len(corpus_tok)>0:
                 print("doing bigrams")
                 # Add bigrams and trigrams to docs (only ones that appear 10 times or more).
-                bigram = Phrases(corpus_filt_spacy, min_count=0.001*len(corpus_filt_spacy))
-                for idx in range(len(corpus_filt_spacy)):
-                    for token in bigram[corpus_filt_spacy[idx]]:
+                bigram = Phrases(corpus_tok, min_count=0.001*len(corpus_tok))
+                for idx in range(len(corpus_tok)):
+                    for token in bigram[corpus_tok[idx]]:
                         if '_' in token:
                             # Token is a bigram, add to document.
-                            corpus_filt_spacy[idx].append(token)
+                            corpus_tok[idx].append(token)
                 from gensim.corpora import Dictionary
 
                 # Create a dictionary representation of the documents.
-                dictionary = Dictionary(corpus_filt_spacy)
+                dictionary = Dictionary(corpus_tok)
 
                 alltok = []
                 freq=[]
-                for doc in corpus_filt_spacy:
+                for doc in corpus_tok:
                     for tok in doc:
                         alltok.append(tok)
                 for t in dictionary:
@@ -121,9 +115,9 @@ def analyze(originfile):
                 freq.sort(key=lambda tup: tup[2], reverse=True)
                 for i in range(len(freq)):
                     freq[i]=tuple(list(freq[i])+[i])
-                if not os.path.exists('resources/bow/allfreq/'):
-                    os.makedirs('resources/bow/allfreq/')
-                with open('resources/bow/allfreq/'+keyword+'_'+emotion.lower()+'.txt', 'w') as f:
+                if not os.path.exists('resources/bow/allfreq/stanford/'):
+                    os.makedirs('resources/bow/allfreq/stanford/')
+                with open('resources/bow/allfreq/stanford/'+keyword+'_'+emotion.lower()+'.txt', 'w') as f:
                     for item in freq:
                         f.write(str(item)+'\n')
                     f.close()
