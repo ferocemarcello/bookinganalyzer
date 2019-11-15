@@ -65,7 +65,9 @@ def analyze(originfile):
             import subprocess
             cmd = 'java -mx4g -cp "*" edu.stanford.nlp.pipeline.StanfordCoreNLPServer -annotators "tokenize,ssplit,pos,lemma,parse,sentiment" -port 9000 -timeout 26000 &'
             with open(os.devnull, "w") as f:
+                print("starting nlp service")
                 subprocess.call(cmd, shell=True, stderr=f,stdout=f)
+                print("nlp service started")
                 os.chdir('../../')
                 nlp_wrapper = StanfordCoreNLP('http://localhost:9000')
                 pool = mp.Pool(initializer=init_globals, processes=mp.cpu_count() * 2, initargs=(counter,spell,nlp_wrapper,), )
