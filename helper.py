@@ -24,9 +24,8 @@ def getRawCorpus(csv_file, id_and_country=False, additionaldetails=False):
         queryexecutor = db_operator(db)
         db.connect()
         for row in reader:
-            if i % 1000 == 0 and i!=0:
+            if i % 50000 == 0 and i!=0:
                 print('reading sentence ' + str(i))
-                break
             i += 1
             id=row[0]
             query = 'SELECT HotelNumber, FamilyType FROM masterthesis.reviews WHERE ReviewID='+id
