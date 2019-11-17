@@ -2,7 +2,7 @@ import time
 import nltk
 import spacy
 nlp = spacy.load("en_core_web_sm")
-f = open("resources/bow/allfreq/breakfast_good.txt", "r")
+f = open("resources/bow/allfreq/stanford/bedroom_good.txt", "r")
 tot=0
 notnounspacy=[]
 notnounnltk=[]
@@ -22,7 +22,7 @@ for r in f.readlines():
     freq=float(r.split(',')[3])
     tot+=freq
     if tot>=thres:
-        print(i)
+        print(str(tot)+' first '+str(i)+' elements')
         thres+=0.1
 f.close()
 print(len(alltok))

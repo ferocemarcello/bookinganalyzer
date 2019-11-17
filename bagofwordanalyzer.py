@@ -1,3 +1,4 @@
+import csv
 import os
 import re
 import string
@@ -63,7 +64,7 @@ def analyze(originfile):
     for emotion in ['Good','Bad']:
         print("begin " + emotion)
         for keyword in list(keywords.keys()):
-            if not (keyword in 'breakfast location beach bathroom bedroom internet pet parking air coffee transportation'.split(' ') and emotion == 'Good'):
+            if emotion == 'Bad':
                 start_time = time.time()
                 print(keyword+' ---- '+time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()))
                 raw_corpus = helper.getRawCorpus(
@@ -125,6 +126,27 @@ def analyze(originfile):
                             f.write(str(item)+'\n')
                         f.close()
 
+                    '''top_tokens=[f[1] for f in freq[:500]]
+                    lentoptok=len(top_tokens)
+                    corpus_bow={}
+                    toplen=0
+                    for i in range(len(corpus_tok)):
+                        corpus_bow[i]=[0]*lentoptok
+                        if len(corpus_tok[i])>toplen:
+                            toplen=len(corpus_tok[i])
+                        for tok in corpus_tok[i]:
+                            try:
+                                corpus_bow[i][top_tokens.index(tok)]=corpus_tok[i].count(tok)
+                            except:
+                                print("None")
+
+                    with open('resources/bow/'+keyword+'_'+emotion.lower()+'.csv', mode='w') as file:
+                        writer = csv.writer(file, delimiter='|', quotechar='"',
+                                                     quoting=csv.QUOTE_MINIMAL)
+                        writer.writerow(['']*toplen+top_tokens)
+                        for i in corpus_bow.keys():
+                            writer.writerow(corpus_tok[i]+['']*(toplen-len(corpus_tok))+corpus_bow[i])
+                    file.close()'''
                 print('------------------------------------------------------')
                 print(str(time.time() - start_time) + ' seconds to compute ' + keyword + ' ' + emotion)
     f.close()
