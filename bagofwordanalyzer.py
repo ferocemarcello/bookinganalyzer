@@ -36,21 +36,21 @@ def init_globals(cnt,spl,nlpw):
     nlp_wrapper=nlpw
 def thread_function_row_only(row):
     row=row.lower()
-    '''counter.value+=1
-    if counter.value%100==0:
-        print(str(counter.value))'''
+    counter.value+=1
+    if counter.value%10000==0:
+        print(str(counter.value))
     for con in constr_conjs:
         if con in row:
             return None
     toks=[spell.correction(tok['lemma']) for tok in
-          nlp_wrapper.annotate(row,properties={'annotators': 'lemma, pos','outputFormat': 'json','timeout': 10000000,})['sentences'][0]['tokens']
-          if tok['pos'] in ['NNS','NN'] and len(tok['lemma'])>1]
+    nlp_wrapper.annotate(row,properties={'annotators': 'lemma, pos','outputFormat': 'json',})['sentences'][0]['tokens']
+    if tok['pos'] in ['NNS','NN'] and len(tok['lemma'])>1]
     return toks
 def analyze(originfile):
     keywords = helper.getKeywords(originfile)
     os.chdir('./resources/stanford-corenlp-full-2018-10-05')
     os.system('kill $(lsof -t -i:9000)')
-    cmd = 'java -mx4g -cp "*" edu.stanford.nlp.pipeline.StanfordCoreNLPServer -annotators "tokenize,ssplit,pos,lemma,parse,sentiment" -port 9000 -timeout 1000000 &'
+    cmd = 'java -mx4g -cp "*" edu.stanford.nlp.pipeline.StanfordCoreNLPServer -annotators "tokenize,ssplit,pos,lemma,parse,sentiment" -port 9000 -timeout 10000000000000 &'
     time.sleep(4)
     print("starting nlp service")
     with open(os.devnull, "w") as f:
@@ -96,13 +96,14 @@ def analyze(originfile):
                 if len(corpus_tok)>0:
                     print("doing bigrams")
                     # Add bigrams and trigrams to docs (only ones that appear 10 times or more).
-                    bigram = Phrases(corpus_tok, min_count=0.001*len(corpus_tok))
+                    bigram = Phrases(corpus_tok, min_count=0.001 * len(corpus_tok))
                     for idx in range(len(corpus_tok)):
                         for token in bigram[corpus_tok[idx]]:
                             if '_' in token:
                                 # Token is a bigram, add to document.
                                 corpus_tok[idx].append(token)
                     from gensim.corpora import Dictionary
+                    print("writing file")
 
                     # Create a dictionary representation of the documents.
                     dictionary = Dictionary(corpus_tok)
