@@ -36,15 +36,15 @@ def init_globals(cnt,spl,nlpw):
     spell=spl
     nlp_wrapper=nlpw
 def thread_function_row_only(row):
-    row=row.lower()
+    text=row[2].lower()
     counter.value+=1
     if counter.value%10000==0:
         print(str(counter.value))
     for con in constr_conjs:
-        if con in row:
+        if con in text:
             return None
     toks=[spell.correction(tok['lemma']) for tok in
-    nlp_wrapper.annotate(row,properties={'annotators': 'lemma, pos','outputFormat': 'json',})['sentences'][0]['tokens']
+    nlp_wrapper.annotate(text,properties={'annotators': 'lemma, pos','outputFormat': 'json',})['sentences'][0]['tokens']
     if tok['pos'] in ['NNS','NN'] and len(tok['lemma'])>1]
     toapp=[]
     for i in range(len(toks)):
@@ -53,7 +53,7 @@ def thread_function_row_only(row):
                 toapp.append(tok)
     for tok in toapp:
         toks.append(tok)
-    return toks
+    return (row,toks)
 def analyze(originfile):
     keywords = helper.getKeywords(originfile)
     os.chdir('./resources/stanford-corenlp-full-2018-10-05')
@@ -76,13 +76,13 @@ def analyze(originfile):
                 print(keyword+' ---- '+time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()))
                 raw_corpus = helper.getRawCorpus(
                     csv_file=open('resources/csvs/' + keyword + '_' + emotion.lower() + '.csv', mode='r',
-                                  encoding="utf8", newline='\n'), id_and_country=True)
+                                  encoding="utf8", newline='\n'), additionaldetails=True)
                 corpus = helper.getCorpusTextFromRaw(raw_corpus)
                 spell = SpellChecker()
                 counter = Value('i', 1)
                 print("starting analysis")
                 pool = mp.Pool(initializer=init_globals, processes=mp.cpu_count() * 2, initargs=(counter,spell,nlp_wrapper,), )
-                corpus_tok = pool.map_async(thread_function_row_only, [doc for doc in corpus]).get()
+                corpus_tok = pool.map_async(thread_function_row_only, [doc for doc in raw_corpus]).get()
                 '''corpus_tok=[]
                 newdoc=False
                 for doc in corpus:
@@ -126,33 +126,34 @@ def analyze(originfile):
                 #
                 # Compute bigrams.
                 if len(corpus_tok)>0:
+                    corpustokonly=[r[1] for r in corpus_tok]
                     print("doing bigrams")
                     # Add bigrams and trigrams to docs (only ones that appear 10 times or more).
-                    bigram = Phrases(corpus_tok, min_count=0.001 * len(corpus_tok))
+                    bigram = Phrases(corpustokonly, min_count=0.001 * len(corpus_tok))
                     for idx in range(len(corpus_tok)):
-                        for token in bigram[corpus_tok[idx]]:
+                        for token in bigram[corpustokonly[idx]]:
                             if '_' in token:
                                 # Token is a bigram, add to document.
-                                corpus_tok[idx].append(token)
+                                corpus_tok[idx][1].append(token)
                     from gensim.corpora import Dictionary
                     print("writing frequence file")
 
                     # Create a dictionary representation of the documents.
-                    dictionary = Dictionary(corpus_tok)
+                    dictionary = Dictionary(corpustokonly)
 
                     alltok = []
                     freq=[]
-                    for doc in corpus_tok:
+                    for doc in corpustokonly:
                         for tok in doc:
                             alltok.append(tok)
                     lencorpus=len(corpus_tok)
                     for t in dictionary:
                         freqsent = 0
-                        for doc in corpus_tok:
-                            if t in doc:
+                        for doc in corpustokonly:
+                            if dictionary.get(t) in doc:
                                 freqsent+=1
-                        freq.append((t,dictionary.get(t),alltok.count(dictionary.get(t)),alltok.count(dictionary.get(t))/len(alltok)),freqsent,freqsent/lencorpus)
-                    freq.sort(key=lambda tup: tup[2], reverse=True)
+                        freq.append((t,dictionary.get(t),alltok.count(dictionary.get(t)),alltok.count(dictionary.get(t))/len(alltok),freqsent,freqsent/lencorpus))
+                    freq.sort(key=lambda tup: tup[5], reverse=True)
                     for i in range(len(freq)):
                         freq[i]=tuple(list(freq[i])+[i])
                     if not os.path.exists('resources/bow/allfreq/stanford/'):
@@ -169,9 +170,9 @@ def analyze(originfile):
                     toplen=0
                     for i in range(len(corpus_tok)):
                         corpus_bow[i]=[0]*lentoptok
-                        if len(corpus_tok[i])>toplen:
-                            toplen=len(corpus_tok[i])
-                        for tok in corpus_tok[i]:
+                        if len(corpus_tok[i][0]+corpus_tok[i][1])>toplen:
+                            toplen=len(corpus_tok[i][0]+corpus_tok[i][1])
+                        for tok in corpus_tok[i][1]:
                             if tok in top_tokens:
                                 corpus_bow[i][top_tokens.index(tok)]=1
 
@@ -180,7 +181,7 @@ def analyze(originfile):
                                                      quoting=csv.QUOTE_MINIMAL)
                         writer.writerow(['']*toplen+top_tokens)
                         for i in corpus_bow.keys():
-                            writer.writerow(corpus_tok[i]+['']*(toplen-len(corpus_tok[i]))+corpus_bow[i])
+                            writer.writerow(corpus_tok[i][0]+corpus_tok[i][1]+['']*(toplen-len(corpus_tok[i][0]+corpus_tok[i][1]))+corpus_bow[i])
                     file.close()
                 print('------------------------------------------------------')
                 print(str(time.time() - start_time) + ' seconds to compute ' + keyword + ' ' + emotion)

@@ -60,9 +60,12 @@ def cluster_raw_corpus_by_nation(raw_corpus):
                 raw_corpus_by_nation[r[1]]=[]
             raw_corpus_by_nation[r[1]].append(r)
     return raw_corpus_by_nation
-def getCorpusTextFromRaw(raw_corpus):
-    rev_only = [r[2] for r in raw_corpus]
-    return rev_only
+def getCorpusTextFromRaw(raw_corpus,rewid=False):
+    if rewid:
+        text=[(r[0],r[2]) for r in raw_corpus]
+    else:
+        text = [r[2] for r in raw_corpus]
+    return text
 
 def preprocessRawCorpus(raw_corpus,thresholdcountpernation=100):
     raw_corpus_by_nation = cluster_raw_corpus_by_nation(raw_corpus)
