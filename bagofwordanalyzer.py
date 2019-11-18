@@ -76,22 +76,26 @@ def analyze(originfile):
                 pool = mp.Pool(initializer=init_globals, processes=mp.cpu_count() * 2, initargs=(counter,spell,nlp_wrapper,), )
                 #corpus_tok = pool.map_async(thread_function_row_only, [doc for doc in corpus]).get()
                 corpus_tok=[]
+                newdoc=False
                 for doc in corpus:
+                    newdoc=False
                     doc = doc.lower()
                     counter.value += 1
                     if counter.value % 10000 == 0:
                         print(str(counter.value))
                     for con in constr_conjs:
                         if con in doc:
-                            return None
-                    toks = [spell.correction(tok['lemma']) for tok in
-                            nlp_wrapper.annotate(doc,
-                                                 properties={'annotators': 'lemma, pos', 'outputFormat': 'json', })[
-                                'sentences'][0]['tokens']
-                            if tok['pos'] in ['NNS', 'NN'] and len(tok['lemma']) > 1]
-                    if counter.value==338605:
-                        print("last")
-                    corpus_tok.append(toks)
+                            newdoc=True
+                            break
+                    if not newdoc:
+                        toks = [spell.correction(tok['lemma']) for tok in
+                                nlp_wrapper.annotate(doc,
+                                                     properties={'annotators': 'lemma, pos', 'outputFormat': 'json', })[
+                                    'sentences'][0]['tokens']
+                                if tok['pos'] in ['NNS', 'NN'] and len(tok['lemma']) > 1]
+                        if counter.value==338605:
+                            print("last")
+                        corpus_tok.append(toks)
                 print('pool close')
                 pool.close()
                 print('pool join')
