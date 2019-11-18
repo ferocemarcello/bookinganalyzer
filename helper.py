@@ -40,15 +40,15 @@ def getRawCorpus(csv_file, id_and_country=False, additionaldetails=False):
         return raw_corpus
     if id_and_country:
         for row in reader:
-            i += 1
-            if i % 50000 == 0:
+            if i % 50000 == 0 and i!=0:
                 print('reading sentence ' + str(i))
+            i += 1
             raw_corpus.append(row)
     else:
         for row in reader:
-            i += 1
-            if i % 50000 == 0:
+            if i % 50000 == 0 and i!=0:
                 print('reading sentence ' + str(i))
+            i += 1
             raw_corpus.append(row[2])
     csv_file.close()
     return raw_corpus

@@ -46,6 +46,13 @@ def thread_function_row_only(row):
     toks=[spell.correction(tok['lemma']) for tok in
     nlp_wrapper.annotate(row,properties={'annotators': 'lemma, pos','outputFormat': 'json',})['sentences'][0]['tokens']
     if tok['pos'] in ['NNS','NN'] and len(tok['lemma'])>1]
+    toapp=[]
+    for i in range(len(toks)):
+        if '/' in toks[i]:
+            for tok in toks[i].split('/'):
+                toapp.append(tok)
+    for tok in toapp:
+        toks.append(tok)
     return toks
 def analyze(originfile):
     keywords = helper.getKeywords(originfile)
@@ -64,18 +71,19 @@ def analyze(originfile):
     for emotion in ['Good','Bad']:
         print("begin " + emotion)
         for keyword in list(keywords.keys()):
-            if emotion=='Good' and keyword=='cleaning':
+            if not(emotion=='Good' and keyword=='cleaning'):
                 start_time = time.time()
                 print(keyword+' ---- '+time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()))
                 raw_corpus = helper.getRawCorpus(
                     csv_file=open('resources/csvs/' + keyword + '_' + emotion.lower() + '.csv', mode='r',
-                                  encoding="utf8", newline='\n'), id_and_country=True,additionaldetails=True)
+                                  encoding="utf8", newline='\n'), id_and_country=True)
                 corpus = helper.getCorpusTextFromRaw(raw_corpus)
                 spell = SpellChecker()
                 counter = Value('i', 1)
+                print("starting analysis")
                 pool = mp.Pool(initializer=init_globals, processes=mp.cpu_count() * 2, initargs=(counter,spell,nlp_wrapper,), )
-                #corpus_tok = pool.map_async(thread_function_row_only, [doc for doc in corpus]).get()
-                corpus_tok=[]
+                corpus_tok = pool.map_async(thread_function_row_only, [doc for doc in corpus]).get()
+                '''corpus_tok=[]
                 newdoc=False
                 for doc in corpus:
                     newdoc=False
@@ -95,7 +103,7 @@ def analyze(originfile):
                                 if tok['pos'] in ['NNS', 'NN'] and len(tok['lemma']) > 1]
                         if counter.value==338605:
                             print("last")
-                        corpus_tok.append(toks)
+                        corpus_tok.append(toks)'''
                 print('pool close')
                 pool.close()
                 print('pool join')
@@ -137,8 +145,13 @@ def analyze(originfile):
                     for doc in corpus_tok:
                         for tok in doc:
                             alltok.append(tok)
+                    lencorpus=len(corpus_tok)
                     for t in dictionary:
-                        freq.append((t,dictionary.get(t),alltok.count(dictionary.get(t)),alltok.count(dictionary.get(t))/len(alltok)))
+                        freqsent = 0
+                        for doc in corpus_tok:
+                            if t in doc:
+                                freqsent+=1
+                        freq.append((t,dictionary.get(t),alltok.count(dictionary.get(t)),alltok.count(dictionary.get(t))/len(alltok)),freqsent,freqsent/lencorpus)
                     freq.sort(key=lambda tup: tup[2], reverse=True)
                     for i in range(len(freq)):
                         freq[i]=tuple(list(freq[i])+[i])
@@ -160,7 +173,7 @@ def analyze(originfile):
                             toplen=len(corpus_tok[i])
                         for tok in corpus_tok[i]:
                             if tok in top_tokens:
-                                corpus_bow[i][top_tokens.index(tok)]=corpus_tok[i].count(tok)
+                                corpus_bow[i][top_tokens.index(tok)]=1
 
                     with open('resources/bow/'+keyword+'_'+emotion.lower()+'.csv', mode='w') as file:
                         writer = csv.writer(file, delimiter='|', quotechar='"',
