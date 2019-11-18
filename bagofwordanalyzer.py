@@ -64,7 +64,7 @@ def analyze(originfile):
     for emotion in ['Good','Bad']:
         print("begin " + emotion)
         for keyword in list(keywords.keys()):
-            if not(keyword in 'breakfast location beach bathroom bedroom internet pet parking air coffee transportation'.split(' ') and emotion=='Good'):
+            if emotion=='Bad':
                 start_time = time.time()
                 print(keyword+' ---- '+time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()))
                 raw_corpus = helper.getRawCorpus(
