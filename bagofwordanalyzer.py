@@ -147,7 +147,12 @@ def analyze(originfile):
                         for tok in doc:
                             alltok.append(tok)
                     lencorpus=len(corpus_tok)
+                    print("len dictionary = "+str(len(dictionary.keys())))
+                    i=0
                     for t in dictionary:
+                        i+=1
+                        if i%1000==0:
+                            print("analyzing token "+str(i))
                         freqsent = 0
                         for doc in corpustokonly:
                             if dictionary.get(t) in doc:
