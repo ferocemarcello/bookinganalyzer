@@ -1,3 +1,4 @@
+import bow_cluster_nation
 import csvwriter
 import gensimldamine
 import gensimldatut
@@ -25,6 +26,7 @@ if __name__ == '__main__':
     #printtopicsforsentences.saveweightedtopspersent('booking_keywords.txt')
     #topicscoreanalyzer.dividebynation('booking_keywords.txt')
     bagofwordanalyzer.analyze('booking_keywords.txt')
+    #bow_cluster_nation.do('booking_keywords.txt')
     '''for t in ['tfidf','tf']:
         for k in ['notincludingkeyword','includingkeyword']:
             for n in ['withnegation','nonegation']:
