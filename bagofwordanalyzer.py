@@ -61,7 +61,7 @@ def thread_function_row_only(row):
                 toapp.append(tok)
     for tok in toapp:
         toks.append(tok)
-    toks=[tok for tok in toks if len(wordnet.synsets(tok)) > 0 and wordnet.synsets(tok)[0].pos() == 'n']
+    #toks=[tok for tok in toks if len(wordnet.synsets(tok)) > 0 and wordnet.synsets(tok)[0].pos() == 'n']
     return (row,toks)
 def analyze(originfile):
     keywords = helper.getKeywords(originfile)
