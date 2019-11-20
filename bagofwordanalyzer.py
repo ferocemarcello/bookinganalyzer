@@ -10,6 +10,7 @@ import subprocess
 from pycorenlp import StanfordCoreNLP
 from sklearn.feature_extraction.text import TfidfVectorizer
 import helper
+from nltk.corpus import wordnet
 import gensimldamine
 from nltk.stem.wordnet import WordNetLemmatizer
 from gensim.models import Phrases
@@ -53,6 +54,14 @@ def thread_function_row_only(row):
                 toapp.append(tok)
     for tok in toapp:
         toks.append(tok)
+    toapp=[]
+    for i in range(len(toks)):
+        if '-' in toks[i]:
+            for tok in toks[i].split('-'):
+                toapp.append(tok)
+    for tok in toapp:
+        toks.append(tok)
+    toks=[tok for tok in toks if len(wordnet.synsets(tok)) > 0 and wordnet.synsets(tok)[0].pos() == 'n']
     return (row,toks)
 def analyze(originfile):
     keywords = helper.getKeywords(originfile)
@@ -71,7 +80,7 @@ def analyze(originfile):
     for emotion in ['Good','Bad']:
         print("begin " + emotion)
         for keyword in list(keywords.keys()):
-            if emotion=='Good' and keyword=='cleaning':
+            if not(emotion=='Good' and keyword=='cleaning'):
                 start_time = time.time()
                 print(keyword+' ---- '+time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()))
                 raw_corpus = helper.getRawCorpus(

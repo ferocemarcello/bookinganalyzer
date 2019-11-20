@@ -1,9 +1,47 @@
 import time
 import nltk
 import spacy
+from nltk.corpus import wordnet
+syn = wordnet.synsets('forest')[0]
+
 nlp = spacy.load("en_core_web_sm")
 f = open("resources/bow/allfreq/stanford/breakfast_good.txt", "r")
-tot=0
+i=0
+alltok=[]
+for r in f.readlines():
+    i += 1
+    tok = r.split(',')[1][2:-1]
+    alltok.append(tok)
+print(alltok)
+print(len(alltok))
+
+tokdict={}
+for tok in alltok[:500]:
+    tokdict[tok]={}
+    tokdict[tok]['lemmas']=[]
+    for syn in wordnet.synsets(tok):
+        tokdict[tok]['lemmas']=syn.lemma_names()
+        '''for hyp in syn.hypernyms():
+            print(hyp)
+        for hyp in syn.hyponyms():
+            print(hyp[0])
+        for memmer in syn.member_meronyms():
+            print(memmer[0])
+        for memmer in syn.member_holonyms()():
+            print(memmer[0])
+        syn.part_holonyms()
+        syn.part_meronyms()
+        syn.substance_holonyms()
+        syn.substance_meronyms()
+        syn.hypernym_paths()
+        syn.hypernym_distances()
+        syn.pos()
+        syn.root_hypernyms()'''
+for tok in alltok:
+    if len(wordnet.synsets(tok))>0 and wordnet.synsets(tok)[0].pos()!='n':
+        print(tok)
+print("cacca")
+'''tot=0
 notnounspacy=[]
 notnounnltk=[]
 alltok=[]
@@ -68,4 +106,4 @@ print(len(exmark))
 print(len(quemark))
 print(len(notalpha))
 print(len(dec))
-print("cacca")
+print("cacca")'''
