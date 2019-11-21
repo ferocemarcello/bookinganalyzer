@@ -80,7 +80,7 @@ def analyze(originfile):
     for emotion in ['Good','Bad']:
         print("begin " + emotion)
         for keyword in list(keywords.keys()):
-            if not(emotion=='Good' and keyword=='cleaning'):
+            if emotion=='Good' and keyword=='cleaning':
                 start_time = time.time()
                 print(keyword+' ---- '+time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()))
                 raw_corpus = helper.getRawCorpus(
@@ -91,9 +91,8 @@ def analyze(originfile):
                 counter = Value('i', 1)
                 print("starting analysis")
                 pool = mp.Pool(initializer=init_globals, processes=mp.cpu_count() * 2, initargs=(counter,spell,nlp_wrapper,), )
-                corpus_tok = pool.map_async(thread_function_row_only, [doc for doc in raw_corpus]).get()
-                '''corpus_tok=[]
-                newdoc=False
+                #corpus_tok = pool.map_async(thread_function_row_only, [doc for doc in raw_corpus]).get()
+                corpus_tok=[]
                 for doc in corpus:
                     newdoc=False
                     doc = doc.lower()
@@ -110,9 +109,21 @@ def analyze(originfile):
                                                      properties={'annotators': 'lemma, pos', 'outputFormat': 'json', })[
                                     'sentences'][0]['tokens']
                                 if tok['pos'] in ['NNS', 'NN'] and len(tok['lemma']) > 1]
-                        if counter.value==338605:
-                            print("last")
-                        corpus_tok.append(toks)'''
+                        toapp = []
+                        for i in range(len(toks)):
+                            if '/' in toks[i]:
+                                for tok in toks[i].split('/'):
+                                    toapp.append(tok)
+                        for tok in toapp:
+                            toks.append(tok)
+                        toapp = []
+                        for i in range(len(toks)):
+                            if '-' in toks[i]:
+                                for tok in toks[i].split('-'):
+                                    toapp.append(tok)
+                        for tok in toapp:
+                            toks.append(tok)
+                        corpus_tok.append(toks)
                 print('pool close')
                 pool.close()
                 print('pool join')
