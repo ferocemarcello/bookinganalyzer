@@ -1,6 +1,7 @@
 import bow_cluster_nation
 import bow_cluster_country_tourist_hotel
 import csvwriter
+import frequence_difference_bow_creator
 import gensimldamine
 import gensimldatut
 import gensimtutlsi
@@ -28,7 +29,8 @@ if __name__ == '__main__':
     #topicscoreanalyzer.dividebynation('booking_keywords.txt')
     #bagofwordanalyzer.analyze('booking_keywords.txt')
     #bow_cluster_nation.do('booking_keywords.txt')
-    bow_cluster_country_tourist_hotel.do('booking_keywords.txt')
+    #bow_cluster_country_tourist_hotel.do('booking_keywords.txt')
+    frequence_difference_bow_creator.do('booking_keywords.txt')
     '''for t in ['tfidf','tf']:
         for k in ['notincludingkeyword','includingkeyword']:
             for n in ['withnegation','nonegation']:
