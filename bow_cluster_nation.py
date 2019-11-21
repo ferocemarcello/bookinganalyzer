@@ -8,7 +8,6 @@ def cluster(csv_reader):
     firstrow = next(csv_reader)
     maxlentokens = firstrow.count('')
     firstrow = firstrow[maxlentokens:]
-    topk = len(firstrow)
     country_cluster_hotel={}
     country_cluster_tourist = {}
     clusters=[country_cluster_hotel, country_cluster_tourist]
