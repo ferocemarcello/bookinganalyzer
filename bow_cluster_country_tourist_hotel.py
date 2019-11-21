@@ -49,7 +49,7 @@ def do(originfile):
                 with open('resources/bow/tourist_hotel_country_freq/' + keyword + '_' + emotion.lower() + '.csv', mode='w') as file:
                     writer = csv.writer(file, delimiter='|', quotechar='"',
                                         quoting=csv.QUOTE_MINIMAL)
-                    writer.writerow([''] * 2 + tokens)
+                    writer.writerow([''] * 3 + tokens)
                     for country in cluster_tourist_hotel.keys():
                         writer.writerow([country[0],country[1]]+[cluster_tourist_hotel[country]['count_rev']]+list(map("{:.15f}".format, cluster_tourist_hotel[country]['rel_freq'])))
                 file.close()
