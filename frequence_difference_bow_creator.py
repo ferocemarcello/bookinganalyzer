@@ -3,6 +3,7 @@ import os
 import time
 
 import helper
+import indexmanager
 
 
 def read_table(filepath):
@@ -26,10 +27,8 @@ def read_table(filepath):
     return cluster_tourist_hotel
 
 
-def get_diff_table(good_table, bad_table):
+def get_diff_table(good_table, bad_table, tokenset):
     diff_table={}
-    pos=0
-    neg=0
     for countries in bad_table.keys():
         if countries in good_table.keys():
             diff_table[countries]={}
@@ -37,6 +36,7 @@ def get_diff_table(good_table, bad_table):
             diff_table[countries]['count_rev']=bad_table[countries]['count_rev']+good_table[countries]['count_rev']
             for tok in bad_table[countries]['tokens'].keys():
                 if tok in good_table[countries]['tokens'].keys():
+                    tokenset.add(tok)
                     diff_table[countries]['tokens'][tok]={}
                     diff_table[countries]['tokens'][tok]['good'] = good_table[countries]['tokens'][tok]
                     diff_table[countries]['tokens'][tok]['bad'] = bad_table[countries]['tokens'][tok]
@@ -46,6 +46,9 @@ def get_diff_table(good_table, bad_table):
 
 def do(originfile):
     keywords = helper.getKeywords(originfile)
+    tokenset = set()
+    diff_tables={}
+    validkeywords=[]
     for keyword in list(keywords.keys()):
         start_time = time.time()
         goforward = True
@@ -56,17 +59,35 @@ def do(originfile):
         except:
             goforward = False
         if goforward:
-            diff_table=get_diff_table(good_tab,bad_table)
-            if not os.path.exists('resources/bow/tourist_hotel_country_freq/diff/'):
-                os.makedirs('resources/bow/tourist_hotel_country_freq/diff/')
-            with open('resources/bow/tourist_hotel_country_freq/diff/'+ keyword+ '.csv',
-                      mode='w') as file:
-                writer = csv.writer(file, delimiter='|', quotechar='"',
-                                    quoting=csv.QUOTE_MINIMAL)
-                writer.writerow(['Tourist_Country_Index','Tourist_Country','Hotel_Country_Index','Hotel_Country','Sum_of_Count_of_Reviews','Token_Index','Token','Token_Frequence_in_Good','Token_Frequence_in_Bad','Difference'])
-                for countries in diff_table.keys():
-                    for tok in diff_table[countries]['tokens'].keys():
-                        writer.writerow([0,countries[0],0,countries[1],diff_table[countries]['count_rev'],0,tok,"{:.15f}".format(diff_table[countries]['tokens'][tok]['good']),"{:.15f}".format(diff_table[countries]['tokens'][tok]['bad']),"{:.15f}".format(diff_table[countries]['tokens'][tok]['diff'])])
-            file.close()
+            validkeywords.append(keyword)
+            diff_table=get_diff_table(good_tab,bad_table,tokenset)
+            diff_tables[keyword]=diff_table
         print('------------------------------------------------------')
-        print(str(time.time() - start_time) + ' seconds to compute ' + keyword)
+        print(str(time.time() - start_time) + ' seconds to build the difference table for ' + keyword)
+    print("start writing difference matrices")
+    indexmanager.build_token_index(tokenset)
+    token_index=indexmanager.get_token_index()
+    for keyword in validkeywords:
+        start_time = time.time()
+        print(keyword + ' ---- ' + time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()))
+        country_tourist_ind = indexmanager.get_tourist_country_index()
+        country_hotel_ind = indexmanager.get_hotel_country_index()
+        if not os.path.exists('resources/bow/tourist_hotel_country_freq/diff/'):
+            os.makedirs('resources/bow/tourist_hotel_country_freq/diff/')
+        with open('resources/bow/tourist_hotel_country_freq/diff/' + keyword + '.csv',
+                  mode='w') as file:
+            writer = csv.writer(file, delimiter='|', quotechar='"',
+                                quoting=csv.QUOTE_MINIMAL)
+            writer.writerow(['Tourist_Country_Index', 'Tourist_Country', 'Hotel_Country_Index', 'Hotel_Country',
+                             'Sum_of_Count_of_Reviews', 'Token_Index', 'Token', 'Token_Frequence_in_Good',
+                             'Token_Frequence_in_Bad', 'Difference'])
+            for countries in diff_tables[keyword].keys():
+                for tok in diff_tables[keyword][countries]['tokens'].keys():
+                    writer.writerow([country_tourist_ind['country_to_index'][countries[0]], countries[0],
+                                     country_hotel_ind['country_to_index'][countries[1]], countries[1],
+                                     diff_tables[keyword][countries]['count_rev'], token_index['token_to_index'][tok], tok,
+                                     "{:.15f}".format(diff_tables[keyword][countries]['tokens'][tok]['good']),
+                                     "{:.15f}".format(diff_tables[keyword][countries]['tokens'][tok]['bad']),
+                                     "{:.15f}".format(diff_tables[keyword][countries]['tokens'][tok]['diff'])])
+        file.close()
+        print(str(time.time() - start_time) + ' seconds to write the difference matrix for ' + keyword)

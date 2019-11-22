@@ -80,7 +80,7 @@ def analyze(originfile):
     for emotion in ['Good','Bad']:
         print("begin " + emotion)
         for keyword in list(keywords.keys()):
-            if emotion=='Good' and keyword=='cleaning':
+            if not(emotion=='Good' and keyword=='cleaning'):
                 start_time = time.time()
                 print(keyword+' ---- '+time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()))
                 raw_corpus = helper.getRawCorpus(
@@ -88,10 +88,11 @@ def analyze(originfile):
                                   encoding="utf8", newline='\n'), additionaldetails=True)
                 corpus = helper.getCorpusTextFromRaw(raw_corpus)
                 spell = SpellChecker()
-                #counter = Value('i', 1)
+                counter = Value('i', 1)
                 print("starting analysis")
-                #pool = mp.Pool(initializer=init_globals, processes=mp.cpu_count() * 2, initargs=(counter,spell,nlp_wrapper,), )
-                #corpus_tok = pool.map_async(thread_function_row_only, [doc for doc in raw_corpus]).get()
+                pool = mp.Pool(initializer=init_globals, processes=mp.cpu_count() * 2, initargs=(counter,spell,nlp_wrapper,), )
+                corpus_tok = pool.map_async(thread_function_row_only, [doc for doc in raw_corpus]).get()
+                '''
                 corpus_tok=[]
                 s=0
                 for doc in corpus:
@@ -124,7 +125,7 @@ def analyze(originfile):
                                     toapp.append(tok)
                         for tok in toapp:
                             toks.append(tok)
-                        corpus_tok.append(toks)
+                        corpus_tok.append(toks)'''
                 print('pool close')
                 pool.close()
                 print('pool join')
