@@ -88,17 +88,18 @@ def analyze(originfile):
                                   encoding="utf8", newline='\n'), additionaldetails=True)
                 corpus = helper.getCorpusTextFromRaw(raw_corpus)
                 spell = SpellChecker()
-                counter = Value('i', 1)
+                #counter = Value('i', 1)
                 print("starting analysis")
-                pool = mp.Pool(initializer=init_globals, processes=mp.cpu_count() * 2, initargs=(counter,spell,nlp_wrapper,), )
+                #pool = mp.Pool(initializer=init_globals, processes=mp.cpu_count() * 2, initargs=(counter,spell,nlp_wrapper,), )
                 #corpus_tok = pool.map_async(thread_function_row_only, [doc for doc in raw_corpus]).get()
                 corpus_tok=[]
+                s=0
                 for doc in corpus:
                     newdoc=False
                     doc = doc.lower()
-                    counter.value += 1
-                    if counter.value % 10000 == 0:
-                        print(str(counter.value))
+                    s += 1
+                    if s % 10000 == 0:
+                        print(str(s))
                     for con in constr_conjs:
                         if con in doc:
                             newdoc=True
