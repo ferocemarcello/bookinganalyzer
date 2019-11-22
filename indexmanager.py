@@ -8,11 +8,14 @@ def build_country_indices():
     db.connect()
     queryexecutor = db_operator(db)
     query = 'select distinct(Country) from masterthesis.reviews;'
+    print("retrieving countries of tourists")
     tourcountries= [x[0] for x in queryexecutor.execute(query=query)][1:]
 
     query='select distinct(CountryID) from masterthesis.hotels;'
+    print("retrieving countries of hotels")
     hotcountries = [x[0] for x in queryexecutor.execute(query=query)]
     db.disconnect()
+    print("writing the indices")
     with open('resources/tourist_country_index.csv', mode='w') as file:
         writer = csv.writer(file, delimiter='|', quotechar='"',
                             quoting=csv.QUOTE_MINIMAL)
