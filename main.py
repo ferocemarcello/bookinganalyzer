@@ -28,11 +28,11 @@ if __name__ == '__main__':
     #gensimldamine.do('booking_keywords.txt')
     #printtopicsforsentences.saveweightedtopspersent('booking_keywords.txt')
     #topicscoreanalyzer.dividebynation('booking_keywords.txt')
-    #bagofwordanalyzer.analyze('booking_keywords.txt')
+    bagofwordanalyzer.analyze('booking_keywords.txt')
     #bow_cluster_nation.do('booking_keywords.txt')
     #bow_cluster_country_tourist_hotel.do('booking_keywords.txt')
     #indexmanager.build_country_indices()
-    frequence_difference_bow_creator.do('booking_keywords.txt')
+    #frequence_difference_bow_creator.do('booking_keywords.txt')
     '''for t in ['tfidf','tf']:
         for k in ['notincludingkeyword','includingkeyword']:
             for n in ['withnegation','nonegation']:

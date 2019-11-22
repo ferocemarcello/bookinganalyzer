@@ -80,13 +80,13 @@ def analyze(originfile):
     for emotion in ['Good','Bad']:
         print("begin " + emotion)
         for keyword in list(keywords.keys()):
-            if not(emotion=='Good' and keyword=='cleaning'):
+            if emotion=='Good' and keyword=='cleaning':
                 start_time = time.time()
                 print(keyword+' ---- '+time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()))
                 raw_corpus = helper.getRawCorpus(
                     csv_file=open('resources/csvs/' + keyword + '_' + emotion.lower() + '.csv', mode='r',
                                   encoding="utf8", newline='\n'), additionaldetails=True)
-                corpus = helper.getCorpusTextFromRaw(raw_corpus)
+                #corpus = helper.getCorpusTextFromRaw(raw_corpus)
                 spell = SpellChecker()
                 counter = Value('i', 1)
                 print("starting analysis")
