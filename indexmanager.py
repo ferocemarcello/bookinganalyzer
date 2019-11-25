@@ -19,14 +19,14 @@ def build_country_indices():
     with open('resources/tourist_country_index.csv', mode='w') as file:
         writer = csv.writer(file, delimiter='|', quotechar='"',
                             quoting=csv.QUOTE_MINIMAL)
-        for i in range(1,len(tourcountries+1)):
+        for i in range(1,len(tourcountries)+1):
             writer.writerow([i,tourcountries[i]])
         writer.writerow([i+1,''])
     file.close()
     with open('resources/hotel_country_index.csv', mode='w') as file:
         writer = csv.writer(file, delimiter='|', quotechar='"',
                             quoting=csv.QUOTE_MINIMAL)
-        for i in range(1,len(hotcountries+1)):
+        for i in range(1,len(hotcountries)+1):
             writer.writerow([i,hotcountries[i]])
         writer.writerow([i+1,'no_location_of_hotel'])
     file.close()
