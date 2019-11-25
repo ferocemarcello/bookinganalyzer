@@ -20,14 +20,14 @@ def build_country_indices():
         writer = csv.writer(file, delimiter='|', quotechar='"',
                             quoting=csv.QUOTE_MINIMAL)
         for i in range(1,len(tourcountries)+1):
-            writer.writerow([i,tourcountries[i]])
+            writer.writerow([i,tourcountries[i-1]])
         writer.writerow([i+1,''])
     file.close()
     with open('resources/hotel_country_index.csv', mode='w') as file:
         writer = csv.writer(file, delimiter='|', quotechar='"',
                             quoting=csv.QUOTE_MINIMAL)
         for i in range(1,len(hotcountries)+1):
-            writer.writerow([i,hotcountries[i]])
+            writer.writerow([i,hotcountries[i-1]])
         writer.writerow([i+1,'no_location_of_hotel'])
     file.close()
     print("writing countries indices over")
@@ -63,7 +63,7 @@ def build_token_index(tokenset):
         writer = csv.writer(file, delimiter='|', quotechar='"',
                             quoting=csv.QUOTE_MINIMAL)
         for i in range(1,len(toklist)+1):
-            writer.writerow([i, toklist[i]])
+            writer.writerow([i, toklist[i-1]])
     file.close()
 def get_token_index():
     token_index={}
