@@ -11,7 +11,8 @@ def read_table(filepath):
     with open(filepath) as csv_file:
         csv_reader = csv.reader(csv_file, delimiter='|')
         firstrow = next(csv_reader)
-        lenprevtokens = firstrow.count('')
+        lenprevtokens = firstrow.count('')+1
+        firstcellunid=len(firstrow)-lenprevtokens
         firstrow = firstrow[lenprevtokens:]
         for row in csv_reader:
             countries = (row[0], row[1])
@@ -19,9 +20,10 @@ def read_table(filepath):
             row=list(map(float,row[lenprevtokens:]))
             cluster_tourist_hotel[countries]={}
             cluster_tourist_hotel[countries]['tokens']={}
+            cluster_tourist_hotel[countries]['unique_reviews']=set(list(map(str,list(map(int,row[firstcellunid:])))))
+            cluster_tourist_hotel[countries]['count_rev'] = count
             for tok in firstrow:
                 i=firstrow.index(tok)
-                cluster_tourist_hotel[countries]['count_rev'] = count
                 cluster_tourist_hotel[countries]['tokens'][tok]=row[i]
     csv_file.close()
     return cluster_tourist_hotel
@@ -33,7 +35,9 @@ def get_diff_table(good_table, bad_table, tokenset):
         if countries in good_table.keys():
             diff_table[countries]={}
             diff_table[countries]['tokens'] = {}
-            diff_table[countries]['count_rev']=bad_table[countries]['count_rev']+good_table[countries]['count_rev']
+            diff_table[countries]['unique_reviews']=set()
+            diff_table[countries]['unique_reviews']=bad_table[countries]['unique_reviews'].union(good_table[countries]['unique_reviews'])
+            diff_table[countries]['count_rev']=len(list(diff_table[countries]['unique_reviews']))
             for tok in bad_table[countries]['tokens'].keys():
                 if tok in good_table[countries]['tokens'].keys():
                     tokenset.add(tok)
@@ -79,7 +83,7 @@ def do(originfile):
             writer = csv.writer(file, delimiter='|', quotechar='"',
                                 quoting=csv.QUOTE_MINIMAL)
             writer.writerow(['Tourist_Country_Index', 'Tourist_Country', 'Hotel_Country_Index', 'Hotel_Country',
-                             'Sum_of_Count_of_Reviews', 'Token_Index', 'Token', 'Token_Frequence_in_Good',
+                             'Total number of unique reviews', 'Token_Index', 'Token', 'Token_Frequence_in_Good',
                              'Token_Frequence_in_Bad', 'Difference'])
             for countries in diff_tables[keyword].keys():
                 for tok in diff_tables[keyword][countries]['tokens'].keys():

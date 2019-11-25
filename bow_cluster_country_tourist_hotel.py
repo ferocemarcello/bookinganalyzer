@@ -13,6 +13,7 @@ def cluster(csv_reader):
     firstrow = firstrow[maxlentokens:]
     cluster_tourist_hotel = {}
     for row in csv_reader:
+        id=row[0]
         country_hot=row[5]
         country_tour = row[1]
         countries=(country_tour,country_hot)
@@ -20,11 +21,14 @@ def cluster(csv_reader):
         values=list(map(int, values))
         if countries not in cluster_tourist_hotel.keys():
             cluster_tourist_hotel[countries]={}
-            cluster_tourist_hotel[countries]['sum']=[0]*len(values)
+            cluster_tourist_hotel[countries]['sum']=[0]*len(values)#sum calculated on the sentences
             cluster_tourist_hotel[countries]['count_rev']=0
-        cluster_tourist_hotel[countries]['count_rev']+=1
+            cluster_tourist_hotel[countries]['unique_reviews'] = set()
+        cluster_tourist_hotel[countries]['unique_reviews'].add(id)
         cluster_tourist_hotel[countries]['sum']=numpy.add(cluster_tourist_hotel[countries]['sum'], values)
     for countries in cluster_tourist_hotel.keys():
+        #count calculated on the unique id
+        cluster_tourist_hotel[countries]['count_rev']=len(list(cluster_tourist_hotel[countries]['unique_reviews']))
         cluster_tourist_hotel[countries]['rel_freq']=[x/cluster_tourist_hotel[countries]['count_rev'] for x in cluster_tourist_hotel[countries]['sum']]
     return firstrow, cluster_tourist_hotel
 
@@ -49,9 +53,9 @@ def do(originfile):
                 with open('resources/bow/tourist_hotel_country_freq/' + keyword + '_' + emotion.lower() + '.csv', mode='w') as file:
                     writer = csv.writer(file, delimiter='|', quotechar='"',
                                         quoting=csv.QUOTE_MINIMAL)
-                    writer.writerow([''] * 3 + tokens)
+                    writer.writerow([''] * 2 + ['unique IDs'] + tokens)
                     for country in cluster_tourist_hotel.keys():
-                        writer.writerow([country[0],country[1]]+[cluster_tourist_hotel[country]['count_rev']]+list(map("{:.15f}".format, cluster_tourist_hotel[country]['rel_freq'])))
+                        writer.writerow([country[0],country[1]]+[cluster_tourist_hotel[country]['count_rev']]+list(map("{:.15f}".format, cluster_tourist_hotel[country]['rel_freq']))+list(cluster_tourist_hotel[country]['unique_reviews']))
                 file.close()
             print('------------------------------------------------------')
             print(str(time.time() - start_time) + ' seconds to compute ' + keyword + ' ' + emotion)
