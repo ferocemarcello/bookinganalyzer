@@ -1,5 +1,7 @@
 import csv
 
+import pycountry
+
 from db import db_operator, db_connection
 
 
@@ -15,18 +17,61 @@ def build_country_indices():
     print("retrieving countries of hotels")
     hotcountries = [x[0] for x in queryexecutor.execute(query=query)]
     db.disconnect()
+    '''country_to_code=dict()
+    #https://en.wikipedia.org/wiki/List_of_ISO_3166_country_codes
+    country_to_code['Antigua &amp; Barbuda']='ag'
+    country_to_code['Bonaire St Eustatius and Saba']='bq'
+    country_to_code['Cape Verde'] = 'cv'
+    country_to_code['Central Africa Republic'] = 'cf'
+    country_to_code['Cocos (K) I.'] = 'cc'
+    country_to_code['CuraÃ§ao'] = 'cw'
+    country_to_code['Democratic Republic of the Congo'] = 'cd'
+    country_to_code['East Timor'] = 'tl'
+    country_to_code['Equitorial Guinea'] = 'gq'
+    country_to_code['France, Metro.'] = 'fr'
+    country_to_code['Heard and McDonald Islands'] = 'hm'
+    country_to_code['Laos'] = 'la'
+    country_to_code['Netherlands Antilles'] = 'nt'
+    country_to_code['North Korea'] = 'kp'
+    country_to_code['Palestinian Territory'] = 'ps'
+    country_to_code['Saint Vincent &amp; Grenadines'] = 'vc'
+    country_to_code['SÃ£o TomÃ© and PrÃ­ncipe'] = 'st'
+    country_to_code['Serbia and Montenegro'] = 'em'
+    country_to_code['South Korea'] = 'kr'
+    country_to_code['St. Helena'] = 'sh'
+    country_to_code['St. Pierre and Miquelon'] = 'pm'
+    country_to_code['Svalbard &amp; Jan Mayen'] = 'sj'
+    country_to_code['Swaziland'] = 'sz'
+    country_to_code['Turks &amp; Caicos Islands'] = 'tc'
+    country_to_code['U.K. Virgin Islands'] = 'vg'
+    country_to_code['U.S. Virgin Islands'] = 'vi'
+    country_to_code['U.S.A.'] = 'us'
+    country_to_code['Saint Maarten (Dutch part)'] = 'sx'
+    '''
     print("writing the indices")
     with open('resources/tourist_country_index.csv', mode='w') as file:
         writer = csv.writer(file, delimiter='|', quotechar='"',
                             quoting=csv.QUOTE_MINIMAL)
         for i in range(1,len(tourcountries)+1):
+            '''try:
+                code=pycountry.countries.search_fuzzy(tourcountries[i-1])[0].alpha_2.lower()
+                country_to_code[tourcountries[i-1]]=code
+            except:
+                None'''
             writer.writerow([i,tourcountries[i-1]])
         writer.writerow([i+1,''])
     file.close()
+    #codes=list(country_to_code.values())
     with open('resources/hotel_country_index.csv', mode='w') as file:
         writer = csv.writer(file, delimiter='|', quotechar='"',
                             quoting=csv.QUOTE_MINIMAL)
         for i in range(1,len(hotcountries)+1):
+            '''cname=(pycountry.countries.get(alpha_2=hotcountries[i-1].upper())).name
+            if cname not in country_to_code.keys():
+                #print(cname+' --- '+hotcountries[i-1])
+                None
+            if hotcountries[i-1] not in codes:
+                print(hotcountries[i - 1])'''
             writer.writerow([i,hotcountries[i-1]])
         writer.writerow([i+1,'no_location_of_hotel'])
     file.close()
