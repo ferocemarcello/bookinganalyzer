@@ -93,6 +93,7 @@ def do(originfile):
                                      "{:.15f}".format(diff_tables[keyword][countries]['tokens'][tok]['good']),
                                      "{:.15f}".format(diff_tables[keyword][countries]['tokens'][tok]['bad']),
                                      "{:.15f}".format(diff_tables[keyword][countries]['tokens'][tok]['diff'])])
+
         file.close()
         print(str(time.time() - start_time) + ' seconds to write the difference matrix for ' + keyword)
 

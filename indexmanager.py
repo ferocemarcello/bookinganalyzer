@@ -1,4 +1,6 @@
 import csv
+import operator
+import traceback
 
 import pycountry
 
@@ -17,7 +19,8 @@ def build_country_indices():
     print("retrieving countries of hotels")
     hotcountries = [x[0] for x in queryexecutor.execute(query=query)]
     db.disconnect()
-    '''country_to_code=dict()
+    special_countries=list()
+    country_to_code=dict()
     #https://en.wikipedia.org/wiki/List_of_ISO_3166_country_codes
     country_to_code['Antigua &amp; Barbuda']='ag'
     country_to_code['Bonaire St Eustatius and Saba']='bq'
@@ -46,34 +49,52 @@ def build_country_indices():
     country_to_code['U.K. Virgin Islands'] = 'vg'
     country_to_code['U.S. Virgin Islands'] = 'vi'
     country_to_code['U.S.A.'] = 'us'
-    country_to_code['Saint Maarten (Dutch part)'] = 'sx'
-    '''
+
+    for key in country_to_code.keys():
+        special_countries.append(key)
+    code_to_country=dict()
+    for k,v in country_to_code.items():
+        code_to_country[v]=k
+    for cont in tourcountries:
+        try:
+            code=pycountry.countries.search_fuzzy(cont)[0].alpha_2.lower()
+        except Exception as e:
+            None
+        if code not in code_to_country:
+            code_to_country[code]=cont
+        if cont not in country_to_code:
+            country_to_code[cont]=code
+    for cont in hotcountries:
+        cname = (pycountry.countries.get(alpha_2=cont.upper())).name
+        if cont not in code_to_country.keys():
+            code_to_country[cont]=cname
+            country_to_code[cname]=cont
     print("writing the indices")
     with open('resources/tourist_country_index.csv', mode='w') as file:
         writer = csv.writer(file, delimiter='|', quotechar='"',
                             quoting=csv.QUOTE_MINIMAL)
-        for i in range(1,len(tourcountries)+1):
-            '''try:
-                code=pycountry.countries.search_fuzzy(tourcountries[i-1])[0].alpha_2.lower()
-                country_to_code[tourcountries[i-1]]=code
-            except:
-                None'''
-            writer.writerow([i,tourcountries[i-1]])
+        for i in range(1,len(list(country_to_code.keys()))+1):
+            writer.writerow([i,list(country_to_code.keys())[i-1]])
         writer.writerow([i+1,''])
     file.close()
-    #codes=list(country_to_code.values())
     with open('resources/hotel_country_index.csv', mode='w') as file:
         writer = csv.writer(file, delimiter='|', quotechar='"',
                             quoting=csv.QUOTE_MINIMAL)
-        for i in range(1,len(hotcountries)+1):
-            '''cname=(pycountry.countries.get(alpha_2=hotcountries[i-1].upper())).name
-            if cname not in country_to_code.keys():
-                #print(cname+' --- '+hotcountries[i-1])
-                None
-            if hotcountries[i-1] not in codes:
-                print(hotcountries[i - 1])'''
-            writer.writerow([i,hotcountries[i-1]])
+        for i in range(1,len(list(code_to_country.keys()))+1):
+            writer.writerow([i,list(code_to_country.keys())[i-1]])
         writer.writerow([i+1,'no_location_of_hotel'])
+    file.close()
+    with open('resources/country_to_code.csv', mode='w') as file:
+        writer = csv.writer(file, delimiter='|', quotechar='"',
+                            quoting=csv.QUOTE_MINIMAL)
+        for key in [x[0] for x in sorted(country_to_code.items(), key=operator.itemgetter(1), reverse=False)]:
+            writer.writerow([key, country_to_code[key]])
+    file.close()
+    with open('resources/code_to_country.csv', mode='w') as file:
+        writer = csv.writer(file, delimiter='|', quotechar='"',
+                            quoting=csv.QUOTE_MINIMAL)
+        for key in [x[0] for x in sorted(code_to_country.items(), key=operator.itemgetter(0), reverse=False)]:
+            writer.writerow([key, code_to_country[key]])
     file.close()
     print("writing countries indices over")
 
