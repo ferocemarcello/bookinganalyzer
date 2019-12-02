@@ -74,8 +74,8 @@ def do(originfile):
     for keyword in validkeywords:
         start_time = time.time()
         print(keyword + ' ---- ' + time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()))
-        country_tourist_ind = indexmanager.get_tourist_country_index()
-        country_hotel_ind = indexmanager.get_hotel_country_index()
+        #country_tourist_ind = indexmanager.get_tourist_country_index()
+        country_ind = indexmanager.get_hotel_country_index()
         if not os.path.exists('resources/bow/tourist_hotel_country_freq/diff/'):
             os.makedirs('resources/bow/tourist_hotel_country_freq/diff/')
         with open('resources/bow/tourist_hotel_country_freq/diff/' + keyword + '.csv',
@@ -87,8 +87,8 @@ def do(originfile):
                              'Token_Frequence_in_Bad', 'Difference'])
             for countries in diff_tables[keyword].keys():
                 for tok in diff_tables[keyword][countries]['tokens'].keys():
-                    writer.writerow([country_tourist_ind['country_to_index'][countries[0]], countries[0],
-                                     country_hotel_ind['country_to_index'][countries[1]], countries[1],
+                    writer.writerow([country_ind['country_to_index'][countries[0]], countries[0],
+                                     country_ind['country_to_index'][countries[1]], countries[1],
                                      diff_tables[keyword][countries]['count_rev'], token_index['token_to_index'][tok], tok,
                                      "{:.15f}".format(diff_tables[keyword][countries]['tokens'][tok]['good']),
                                      "{:.15f}".format(diff_tables[keyword][countries]['tokens'][tok]['bad']),
@@ -111,7 +111,7 @@ def filter(originfile):
                 csv_reader = csv.reader(csv_file, delimiter='|')
                 lines.append(next(csv_reader))
                 for row in csv_reader:
-                    if int(row[4])>=100 and row[1]!='' and row[3]!='no_location_of_hotel':
+                    if int(row[4])>=100 and row[1]!='' and row[1]=='no_country' and row[3]!='no_country':
                         lines.append(row)
             csv_file.close()
             if not os.path.exists('resources/bow/tourist_hotel_country_freq/diff/filtered/'):

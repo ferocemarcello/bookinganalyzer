@@ -36,7 +36,7 @@ def getRawCorpus(csv_file, id_and_country=False, additionaldetails=False):
             query = 'SELECT CountryID FROM masterthesis.hotels WHERE HotelNumber=' + str(det[0])
             hot = queryexecutor.execute(query=query)
             if len(hot)<=0:
-                hot=[('no_location_of_hotel',)]
+                hot=[('no_country',)]
             hot = [hot[0][0]]
             det=det+hot
             raw_corpus.append(row+det)

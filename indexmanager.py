@@ -75,14 +75,17 @@ def build_country_indices():
                             quoting=csv.QUOTE_MINIMAL)
         for i in range(1,len(list(country_to_code.keys()))+1):
             writer.writerow([i,list(country_to_code.keys())[i-1]])
-        writer.writerow([i+1,''])
+        i+=1
+        writer.writerow([i,'no_country'])
+        i += 1
+        writer.writerow([i,''])
     file.close()
     with open('resources/hotel_country_index.csv', mode='w') as file:
         writer = csv.writer(file, delimiter='|', quotechar='"',
                             quoting=csv.QUOTE_MINIMAL)
         for i in range(1,len(list(code_to_country.keys()))+1):
             writer.writerow([i,list(code_to_country.keys())[i-1]])
-        writer.writerow([i+1,'no_location_of_hotel'])
+        writer.writerow([i+1,'no_country'])
     file.close()
     with open('resources/country_to_code.csv', mode='w') as file:
         writer = csv.writer(file, delimiter='|', quotechar='"',
@@ -141,3 +144,12 @@ def get_token_index():
             token_index['index_to_token'][int(row[0])]=row[1]
             token_index['token_to_index'][row[1]] = int(row[0])
     return token_index
+
+def get_country_to_code():
+    country_hotel_code= {}
+    with open('resources/country_to_code.csv') as csv_file:
+        csv_reader = csv.reader(csv_file, delimiter='|')
+        for row in csv_reader:
+            country_hotel_code[row[0]] = row[1]
+    csv_file.close()
+    return country_hotel_code

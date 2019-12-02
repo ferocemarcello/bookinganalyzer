@@ -5,6 +5,7 @@ import time
 import numpy
 
 import helper
+from indexmanager import get_country_to_code
 
 
 def cluster(csv_reader):
@@ -12,10 +13,14 @@ def cluster(csv_reader):
     maxlentokens = firstrow.count('')
     firstrow = firstrow[maxlentokens:]
     cluster_tourist_hotel = {}
+    country_hotel_code = get_country_to_code()
     for row in csv_reader:
         id=row[0]
         country_hot=row[5]
-        country_tour = row[1]
+        if row[1] == '':
+            country_tour='no_country'
+        else:
+            country_tour = country_hotel_code[row[1]]
         countries=(country_tour,country_hot)
         values=row[maxlentokens:]
         values=list(map(int, values))
