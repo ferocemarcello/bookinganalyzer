@@ -108,6 +108,7 @@ def filter(originfile):
     intersect_tokens=set()
     intersect_countries_origin=set()
     intersect_countries_dest = set()
+    validkeywords = []
     for keyword in list(keywords.keys()):
         if keyword in ['breakfast', 'bedroom', 'bathroom' ,'location']:
             countries['origin'][keyword] = set()
@@ -115,7 +116,6 @@ def filter(originfile):
             tokens[keyword]=set()
             start_time = time.time()
             goforward = True
-            validkeywords = []
             print(keyword + ' ---- ' + time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()))
             lines=[]
             try:
@@ -136,9 +136,9 @@ def filter(originfile):
                 lines_dict[keyword]=lines
                 if len(list(intersect_tokens))==0:
                     intersect_tokens=tokens[keyword]
-                if len(list(countries['origin'][keyword]))==0:
+                if len(list(intersect_countries_origin))==0:
                     intersect_countries_origin=countries['origin'][keyword]
-                if len(list(countries['destination'][keyword]))==0:
+                if len(list(intersect_countries_dest))==0:
                     intersect_countries_dest=countries['destination'][keyword]
                 intersect_tokens=intersect_tokens.intersection(tokens[keyword])
                 intersect_countries_origin=intersect_countries_origin.intersection(countries['origin'][keyword])
@@ -152,9 +152,10 @@ def filter(originfile):
                   mode='w') as file:
             writer = csv.writer(file, delimiter='|', quotechar='"',
                                 quoting=csv.QUOTE_MINIMAL)
+            writer.writerow(['country_origin_index','country_destination_index','token_index','frequence_difference'])
             for line in lines_dict[keyword]:
                 if line[0] in intersect_countries_origin and line[1] in intersect_countries_dest:
-                    writer.writerows(line)
+                    writer.writerow(line)
         file.close()
 def build_association_count_list(originfile):
     keywords = helper.getKeywords(originfile)
