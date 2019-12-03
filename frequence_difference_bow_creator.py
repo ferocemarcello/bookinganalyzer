@@ -100,34 +100,62 @@ def do(originfile):
 
 def filter(originfile):
     keywords = helper.getKeywords(originfile)
+    countries=dict()
+    tokens=dict()
+    countries['origin']=dict()
+    countries['destination']=dict()
+    lines_dict=dict()
+    intersect_tokens=set()
+    intersect_countries_origin=set()
+    intersect_countries_dest = set()
     for keyword in list(keywords.keys()):
-        start_time = time.time()
-        goforward = True
-        validkeywords = []
-        print(keyword + ' ---- ' + time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()))
-        lines=[]
-        try:
-            with open('resources/bow/tourist_hotel_country_freq/diff/' + keyword + '.csv') as csv_file:
-                csv_reader = csv.reader(csv_file, delimiter='|')
-                lines.append(next(csv_reader))
-                for row in csv_reader:
-                    if int(row[4])>=100 and row[1]!='' and row[1]=='no_country' and row[3]!='no_country':
-                        lines.append(row)
-            csv_file.close()
-            if not os.path.exists('resources/bow/tourist_hotel_country_freq/diff/filtered/'):
-                os.makedirs('resources/bow/tourist_hotel_country_freq/diff/filtered/')
-            with open('resources/bow/tourist_hotel_country_freq/diff/filtered/' + keyword + '.csv',
-                      mode='w') as file:
-                writer = csv.writer(file, delimiter='|', quotechar='"',
-                                    quoting=csv.QUOTE_MINIMAL)
-                writer.writerows(lines)
-            file.close()
-        except:
-            goforward=False
-        if goforward:
-            validkeywords.append(keyword)
-        print('------------------------------------------------------')
-        print(str(time.time() - start_time) + ' seconds to filter ' + keyword)
+        if keyword in ['breakfast', 'bedroom', 'bathroom' ,'location']:
+            countries['origin'][keyword] = set()
+            countries['destination'][keyword] = set()
+            tokens[keyword]=set()
+            start_time = time.time()
+            goforward = True
+            validkeywords = []
+            print(keyword + ' ---- ' + time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()))
+            lines=[]
+            try:
+                with open('resources/bow/tourist_hotel_country_freq/diff/' + keyword + '.csv') as csv_file:
+                    csv_reader = csv.reader(csv_file, delimiter='|')
+                    lines.append(next(csv_reader))
+                    for row in csv_reader:
+                        if int(row[4])>=100 and row[1]!='' and row[1]!='no_country' and row[3]!='no_country':
+                            lines.append([row[0],row[2],row[5],row[9]])
+                            countries['origin'][keyword].add(row[0])
+                            countries['destination'][keyword].add(row[2])
+                            tokens[keyword].add(row[5])
+                csv_file.close()
+            except:
+                goforward=False
+            if goforward:
+                validkeywords.append(keyword)
+                lines_dict[keyword]=lines
+                if len(list(intersect_tokens))==0:
+                    intersect_tokens=tokens[keyword]
+                if len(list(countries['origin'][keyword]))==0:
+                    intersect_countries_origin=countries['origin'][keyword]
+                if len(list(countries['destination'][keyword]))==0:
+                    intersect_countries_dest=countries['destination'][keyword]
+                intersect_tokens=intersect_tokens.intersection(tokens[keyword])
+                intersect_countries_origin=intersect_countries_origin.intersection(countries['origin'][keyword])
+                intersect_countries_dest = intersect_countries_dest.intersection(countries['destination'][keyword])
+            print('------------------------------------------------------')
+            print(str(time.time() - start_time) + ' seconds to filter ' + keyword)
+    if not os.path.exists('resources/bow/tourist_hotel_country_freq/diff/filtered/'):
+        os.makedirs('resources/bow/tourist_hotel_country_freq/diff/filtered/')
+    for keyword in validkeywords:
+        with open('resources/bow/tourist_hotel_country_freq/diff/filtered/' + keyword + '.csv',
+                  mode='w') as file:
+            writer = csv.writer(file, delimiter='|', quotechar='"',
+                                quoting=csv.QUOTE_MINIMAL)
+            for line in lines_dict[keyword]:
+                if line[0] in intersect_countries_origin and line[1] in intersect_countries_dest:
+                    writer.writerows(line)
+        file.close()
 def build_association_count_list(originfile):
     keywords = helper.getKeywords(originfile)
     ass_count_count=dict()
