@@ -109,8 +109,15 @@ def filter(originfile):
     intersect_countries_origin=set()
     intersect_countries_dest = set()
     validkeywords = []
+    ass_count_count=dict()
+    ass_count_count['origin_tourist'] = dict()
+    ass_count_count['destination_hotel'] = dict()
+    combs=dict()
     for keyword in list(keywords.keys()):
         if keyword in ['breakfast', 'bedroom', 'bathroom' ,'location']:
+            combs[keyword]=set()
+            ass_count_count['origin_tourist'][keyword]=dict()
+            ass_count_count['destination_hotel'][keyword] = dict()
             countries['origin'][keyword] = set()
             countries['destination'][keyword] = set()
             tokens[keyword]=set()
@@ -121,15 +128,16 @@ def filter(originfile):
             try:
                 with open('resources/bow/tourist_hotel_country_freq/diff/' + keyword + '.csv') as csv_file:
                     csv_reader = csv.reader(csv_file, delimiter='|')
-                    lines.append(next(csv_reader))
+                    next(csv_reader)
                     for row in csv_reader:
                         if int(row[4])>=100 and row[1]!='' and row[1]!='no_country' and row[3]!='no_country':
+                            combs[keyword].add((row[0],row[2]))
                             lines.append([row[0],row[2],row[5],row[9]])
                             countries['origin'][keyword].add(row[0])
                             countries['destination'][keyword].add(row[2])
                             tokens[keyword].add(row[5])
                 csv_file.close()
-            except:
+            except Exception as e:
                 goforward=False
             if goforward:
                 validkeywords.append(keyword)
@@ -147,6 +155,52 @@ def filter(originfile):
             print(str(time.time() - start_time) + ' seconds to filter ' + keyword)
     if not os.path.exists('resources/bow/tourist_hotel_country_freq/diff/filtered/'):
         os.makedirs('resources/bow/tourist_hotel_country_freq/diff/filtered/')
+    if not os.path.exists('resources/bow/tourist_hotel_country_freq/diff/filtered/withcomb/'):
+        os.makedirs('resources/bow/tourist_hotel_country_freq/diff/filtered/withcomb/')
+    combs_intersection = set.intersection(*[combs[keyword] for keyword in combs.keys()])
+    lines=[[line for line in lines_dict[keyword] if (line[0],line[1]) in combs_intersection] for keyword in validkeywords]
+    ass = dict()
+    common_tokens=dict()
+    for line in lines:
+        ass[lines.index(line)] = dict()
+        for l in line:
+            if (l[0],l[1]) not in common_tokens.keys():
+                common_tokens[(l[0],l[1])]=set()
+            common_tokens[(l[0], l[1])].add(l[2])
+            if l[0] not in ass[lines.index(line)].keys():
+                ass[lines.index(line)][l[0]] = set()
+            ass[lines.index(line)][l[0]].add(l[1])
+    origins = set.intersection(
+        *[set([key for key in ass[keyword].keys()
+               if len(ass[keyword][key]) >= 6])
+          for keyword in ass.keys()])
+    destinations = set.intersection(
+        *[set.intersection(*[ass[keyword][key]
+                             for key in ass[keyword].keys()
+                             if len(ass[keyword][key]) >= 6]) for
+          keyword in ass.keys()])
+    token_index=dict()
+    country_index=dict()
+    old_cont_index=indexmanager.get_hotel_country_index()
+    old_tok_index = indexmanager.get_token_index()
+    country_list=list(destinations.union(origins))
+    token_list=list(set.union(*[common_tokens[k] for k in common_tokens.keys()]))
+    for i in range(1,len(country_list)+1):
+        country_index[i]=old_cont_index['index_to_country'][int(country_list[i-1])]
+    for i in range(1,len(token_list)):
+        token_index[i]=old_tok_index['index_to_token'][int(token_list[i-1])]
+    with open('resources/bow/tourist_hotel_country_freq/diff/filtered/withcomb/token_index.csv', mode='w') as file:
+        writer = csv.writer(file, delimiter='|', quotechar='"',
+                            quoting=csv.QUOTE_MINIMAL)
+        for k in sorted(list(token_index.keys())):
+            writer.writerow([k, token_index[k]])
+    file.close()
+    with open('resources/bow/tourist_hotel_country_freq/diff/filtered/withcomb/country_index.csv', mode='w') as file:
+        writer = csv.writer(file, delimiter='|', quotechar='"',
+                            quoting=csv.QUOTE_MINIMAL)
+        for k in sorted(list(country_index.keys())):
+            writer.writerow([k, country_index[k]])
+    file.close()
     for keyword in validkeywords:
         with open('resources/bow/tourist_hotel_country_freq/diff/filtered/' + keyword + '.csv',
                   mode='w') as file:
@@ -157,92 +211,61 @@ def filter(originfile):
                 if line[0] in intersect_countries_origin and line[1] in intersect_countries_dest:
                     writer.writerow(line)
         file.close()
+        with open('resources/bow/tourist_hotel_country_freq/diff/filtered/withcomb/' + keyword + '.csv',
+                  mode='w') as file:
+            writer = csv.writer(file, delimiter='|', quotechar='"',
+                                quoting=csv.QUOTE_MINIMAL)
+            writer.writerow(['country_origin_index','country_destination_index','token_index','frequence_difference'])
+            for line in lines_dict[keyword]:
+                if line[0] in origins and line[1] in destinations:
+                    writer.writerow(line)
+        file.close()
 def build_association_count_list(originfile):
+    lines=[]
+    ass = dict()
     keywords = helper.getKeywords(originfile)
-    ass_count_count=dict()
-    valid_keywords = []
-    ass_count_count['origin_tourist']=dict()
-    ass_count_count['destination_hotel']=dict()
+    combs=dict()
     for keyword in list(keywords.keys()):
-        start_time = time.time()
-        print(keyword + ' ---- ' + time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()))
-        ass_count_count['origin_tourist'][keyword] = dict()
-        ass_count_count['destination_hotel'][keyword] = dict()
-        goforward = True
-        try:
-            with open('resources/bow/tourist_hotel_country_freq/diff/filtered/' + keyword + '.csv') as csv_file:
+        if keyword in ['breakfast', 'bedroom', 'bathroom', 'location']:
+            ass[keyword] = dict()
+            combs[keyword]=dict()
+            with open(
+                    'resources/bow/tourist_hotel_country_freq/diff/filtered/withcomb/' + keyword + '.csv') as csv_file:
                 csv_reader = csv.reader(csv_file, delimiter='|')
                 next(csv_reader)
                 for row in csv_reader:
-                    if row[1] not in ass_count_count['origin_tourist'][keyword].keys():
-                        ass_count_count['origin_tourist'][keyword][row[1]]=dict()
-                    if row[3] not in ass_count_count['destination_hotel'][keyword].keys():
-                        ass_count_count['destination_hotel'][keyword][row[3]] = dict()
-                    if row[3] not in ass_count_count['origin_tourist'][keyword][row[1]].keys():
-                        ass_count_count['origin_tourist'][keyword][row[1]][row[3]]=row[4]
-                    if row[1] not in ass_count_count['destination_hotel'][keyword][row[3]].keys():
-                        ass_count_count['destination_hotel'][keyword][row[3]][row[1]]=row[4]
-            csv_file.close()
-        except:
-            goforward = False
-        if goforward:
-            valid_keywords.append(keyword)
-        print('------------------------------------------------------')
-        print(str(time.time() - start_time) + ' seconds for creating dicts for association count for ' + keyword)
-    allorigins = set()
-    alldestinations=set()
-    for keyword in valid_keywords:
-        allorigins=allorigins.union(set(ass_count_count['origin_tourist'][keyword].keys()))
-        alldestinations=alldestinations.union(set(ass_count_count['destination_hotel'][keyword].keys()))
-    s = dict()
-    s['origin']=dict()
-    s['destination']=dict()
-    for origin in allorigins:
-        s['origin'][origin]=0
-        for keyword in valid_keywords:
-            if origin not in ass_count_count['origin_tourist'][keyword].keys():
-                ass_count_count['origin_tourist'][keyword][origin]=dict()
-    for dest in alldestinations:
-        s['destination'][dest] = 0
-        for keyword in valid_keywords:
-            if dest not in ass_count_count['destination_hotel'][keyword].keys():
-                ass_count_count['destination_hotel'][keyword][dest]=dict()
-    count_sum_dict=dict()
-    for keyword in valid_keywords:
-        count_sum_dict[keyword]=dict()
-        count_sum_dict[keyword]['origin']= dict()
-        count_sum_dict[keyword]['destination'] = dict()
-        for origin in allorigins:
-            list_from_origin_keyword=[int(ass_count_count['origin_tourist'][keyword][origin][x]) for x in
-             ass_count_count['origin_tourist'][keyword][origin].keys()]
-            sumfromorigin_keyword=sum(list_from_origin_keyword)
-            num_distinct_from_origin_keyword = len(list_from_origin_keyword)
-            count_sum_dict[keyword]['origin'][origin] ={"count distinct country destinations":num_distinct_from_origin_keyword,"sum of unique reviews from this country":sumfromorigin_keyword}
-        for dest in alldestinations:
-            list_to_dest_keyword=[int(ass_count_count['destination_hotel'][keyword][dest][x]) for x in
-             ass_count_count['destination_hotel'][keyword][dest].keys()]
-            sum_to_dest_keyword=sum(list_to_dest_keyword)
-            num_distinct_to_destination_keyword = len(list_to_dest_keyword)
-            count_sum_dict[keyword]['destination'][dest]={"count distinct country of origin":num_distinct_to_destination_keyword,"sum of unique reviews to the country":sum_to_dest_keyword}
-    for k in count_sum_dict:
-        for origin in allorigins:
-            s['origin'][origin]+=count_sum_dict[k]['origin'][origin]['count distinct country destinations']
-        for dest in alldestinations:
-            s['destination'][dest] += count_sum_dict[k]['destination'][dest]['count distinct country of origin']
-    sorted_origins=[x[0] for x in sorted(s['origin'].items(), key=operator.itemgetter(1), reverse=True)]
-    sorted_destinations=[x[0] for x in sorted(s['destination'].items(), key=operator.itemgetter(1),reverse=True)]
-    line=['']+sorted_origins+['']+sorted_destinations
-    lines=[]
-    lines.append(line)
-    for keyword in valid_keywords:
-        line = [keyword]
-        for origin in sorted_origins:
-            line.append(count_sum_dict[keyword]['origin'][origin])
-        line.append("")
-        for dest in sorted_destinations:
-            line.append(count_sum_dict[keyword]['destination'][dest])
-        lines.append(line)
-    with open('resources/bow/tourist_hotel_country_freq/diff/filtered/association_count.csv', mode='w') as file:
-        writer = csv.writer(file, delimiter='|', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-        writer.writerows(lines)
+                    if row[0] not in ass[keyword].keys():
+                        ass[keyword][row[0]] = set()
+                    ass[keyword][row[0]].add(row[1])
+                    if (row[0], row[1]) not in combs[keyword].keys():
+                        combs[keyword][(row[0], row[1])]=set()
+                    combs[keyword][(row[0], row[1])].add(row[2])
+    b = True
+    v = set([[k for k in ass[keyword].keys()]for keyword in ass.keys()][0])
+    for o in [[k for k in ass[keyword].keys()]for keyword in ass.keys()]:
+        if set(o)!=v:
+            b=False
+            break
+    lines.append('all possible origins are the same number and the same = '+str(b)+'\n')
+    v = [[ass[keyword][k] for k in ass[keyword].keys()] for keyword in ass.keys()][0][0]
+    b = True
+    for d in [[ass[keyword][k] for k in ass[keyword].keys()] for keyword in ass.keys()]:
+        for dd in d:
+            if dd != v:
+                b = False
+                break
+    lines.append('all possible destinations are the same number and the same = '+str(b)+'\n')
+    lines.append('all origins are: '+str(set([k for k in ass['breakfast'].keys()]))+'\n')
+    lines.append('all destinations are: ' + str([ass['breakfast'][k] for k in ass['breakfast'].keys()][0])+'\n')
+    for keyword in ['breakfast', 'bedroom', 'bathroom', 'location']:
+        b = True
+        toksetz=[combs[keyword][c] for c in combs[keyword].keys()][0]
+        for tokset in [combs[keyword][c] for c in combs[keyword].keys()]:
+            if tokset!=toksetz:
+                b=False
+                break
+        lines.append("for concept "+ keyword+', for every combination origin/destination, all the tokens are the same = '+str(b)+'\n')
+        lines.append("for concept "+ keyword+' the length of the list of tokens for the first combination origin/destination is '+str(len(toksetz))+'\n')
+    file = open('resources/bow/tourist_hotel_country_freq/diff/filtered/withcomb/report.txt','w')
+    file.writelines(lines)
     file.close()

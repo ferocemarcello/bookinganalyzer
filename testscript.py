@@ -1,109 +1,45 @@
-import time
-import nltk
-import spacy
-from nltk.corpus import wordnet
-syn = wordnet.synsets('forest')[0]
+import csv
+import helper
+import numpy as np
 
-nlp = spacy.load("en_core_web_sm")
-f = open("resources/bow/allfreq/stanford/breakfast_good.txt", "r")
-i=0
-alltok=[]
-for r in f.readlines():
-    i += 1
-    tok = r.split(',')[1][2:-1]
-    alltok.append(tok)
-print(alltok)
-print(len(alltok))
+destinations=dict()
+origins=dict()
+keywords = helper.getKeywords('booking_keywords.txt')
+for keyword in list(keywords.keys()):
+    if keyword in ['breakfast', 'bedroom', 'bathroom', 'location']:
+        destinations[keyword]=set()
+        origins[keyword] = set()
+        with open('resources/bow/tourist_hotel_country_freq/diff/filtered/withcomb/' + keyword + '.csv') as csv_file:
+            csv_reader = csv.reader(csv_file, delimiter='|')
+            next(csv_reader)
+            for row in csv_reader:
+                origins[keyword].add(row[0])
+                destinations[keyword].add(row[1])
+print(origins['breakfast']==origins['bedroom']==origins['bathroom']==origins['location'])
+unorigin=((origins['breakfast'].union(origins['bedroom'])).union(origins['bathroom'])).union(origins['location'])
+print(destinations['breakfast']==destinations['bedroom']==destinations['bathroom']==destinations['location'])
+undest=((destinations['breakfast'].union(destinations['bedroom'])).union(destinations['bathroom'])).union(destinations['location'])
+for keyword in list(keywords.keys()):
+    if keyword in ['breakfast', 'bedroom', 'bathroom', 'location']:
+        print(unorigin.difference(origins[keyword]))
+        print(undest.difference(destinations[keyword]))
+matrices=dict()
+matrices['breakfast'] = np.zeros((len(list(origins['breakfast'])), len(list(destinations['breakfast']))))
+matrices['bedroom'] = np.zeros((len(list(origins['bedroom'])), len(list(destinations['bedroom']))))
+matrices['bathroom'] = np.zeros((len(list(origins['bathroom'])), len(list(destinations['bathroom']))))
+matrices['location'] = np.zeros((len(list(origins['location'])), len(list(destinations['location']))))
+ass=dict()
+for keyword in list(keywords.keys()):
+    if keyword in ['breakfast', 'bedroom', 'bathroom', 'location']:
+        ass[keyword]=dict()
+        with open('resources/bow/tourist_hotel_country_freq/diff/filtered/withcomb/' + keyword + '.csv') as csv_file:
+            csv_reader = csv.reader(csv_file, delimiter='|')
+            next(csv_reader)
+            for row in csv_reader:
+                if row[0] not in ass[keyword].keys():
+                    ass[keyword][row[0]]=set()
+                ass[keyword][row[0]].add(row[1])
+ors=set.intersection(*[set([key for key in ass[keyword].keys() if len(ass[keyword][key])>=6]) for keyword in matrices.keys()])
+dests=set.intersection(*[set.intersection(*[ass[keyword][key] for key in ass[keyword].keys() if len(ass[keyword][key])>=6]) for keyword in matrices.keys()])
+cacca=""
 
-tokdict={}
-for tok in alltok[:500]:
-    tokdict[tok]={}
-    tokdict[tok]['lemmas']=[]
-    for syn in wordnet.synsets(tok):
-        tokdict[tok]['lemmas']=syn.lemma_names()
-        '''for hyp in syn.hypernyms():
-            print(hyp)
-        for hyp in syn.hyponyms():
-            print(hyp[0])
-        for memmer in syn.member_meronyms():
-            print(memmer[0])
-        for memmer in syn.member_holonyms()():
-            print(memmer[0])
-        syn.part_holonyms()
-        syn.part_meronyms()
-        syn.substance_holonyms()
-        syn.substance_meronyms()
-        syn.hypernym_paths()
-        syn.hypernym_distances()
-        syn.pos()
-        syn.root_hypernyms()'''
-for tok in alltok:
-    if len(wordnet.synsets(tok))>0 and wordnet.synsets(tok)[0].pos()!='n':
-        print(tok)
-print("cacca")
-'''tot=0
-notnounspacy=[]
-notnounnltk=[]
-alltok=[]
-i=0
-thres=0.4
-slash=[]
-dash=[]
-notalpha=[]
-dec=[]
-exmark=[]
-quemark=[]
-freqsbag=0
-for r in f.readlines():
-    appended = False
-    i+=1
-    tok=r.split(',')[1][2:-1]
-    if '\\' in tok or '/' in tok:
-        slash.append(tok)
-        freqsbag+=float(r.split(',')[3])
-        appended=True
-    if '-' in tok and not appended:
-        dash.append(tok)
-        appended = True
-        freqsbag += float(r.split(',')[3])
-    if '!' in tok and not appended:
-        exmark.append(tok)
-        freqsbag += float(r.split(',')[3])
-        appended = True
-    if '?' in tok and not appended:
-        quemark.append(tok)
-        appended = True
-        freqsbag += float(r.split(',')[3])
-    if not tok.isalnum() and not appended:
-        notalpha.append(tok)
-        freqsbag += float(r.split(',')[3])
-        appended = True
-    if tok.isdecimal() and not appended:
-        dec.append(tok)
-        freqsbag += float(r.split(',')[3])
-        appended = True
-
-    alltok.append(tok)
-    posnltk=nltk.pos_tag([tok])
-    posspacy=nlp(tok)[0].pos_
-    if posnltk[0][1]!='NN':
-        notnounnltk.append(r+'='+posnltk[0][1])
-    if posspacy!='NOUN':
-        notnounspacy.append(r+'='+posspacy)
-    freq=float(r.split(',')[3])
-    tot+=freq
-    if tot>=thres:
-        print(str(tot)+' first '+str(i)+' elements')
-        thres+=0.1
-f.close()
-print(freqsbag)
-print(len(alltok))
-print(len(notnounspacy))
-print(len(notnounnltk))
-print(len(slash))
-print(len(dash))
-print(len(exmark))
-print(len(quemark))
-print(len(notalpha))
-print(len(dec))
-print("cacca")'''
