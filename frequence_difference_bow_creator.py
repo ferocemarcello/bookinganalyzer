@@ -116,9 +116,9 @@ def do(originfile):
             writer.writerow(['Tourist_Country_Index', 'Tourist_Country', 'Hotel_Country_Index', 'Hotel_Country',
                              'Total number of unique reviews', 'Token_Index', 'Token', 'Token_Frequence_in_Good',
                              'Token_Frequence_in_Bad', 'Difference'])
+            print(diff_tables.keys())
             for countries in diff_tables[keyword].keys():
                 for tok in diff_tables[keyword][countries]['tokens'].keys():
-                    print(diff_tables.keys())
                     writer.writerow([country_ind['country_to_index'][countries[0]], countries[0],
                                      country_ind['country_to_index'][countries[1]], countries[1],
                                      diff_tables[keyword][countries]['count_rev'], token_index['token_to_index'][tok], tok,
