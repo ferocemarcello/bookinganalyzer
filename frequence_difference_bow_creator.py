@@ -33,15 +33,14 @@ def get_diff_table(good_table, bad_table, tokenset,common_tokens=True):
     diff_table={}
     if common_tokens:
         for countries in bad_table.keys():
-            diff_table[countries]={}
-            diff_table[countries]['tokens'] = {}
-            diff_table[countries]['unique_reviews']=set()
             if countries in good_table.keys():
+                diff_table[countries] = {}
+                diff_table[countries]['tokens'] = {}
                 diff_table[countries]['unique_reviews']=bad_table[countries]['unique_reviews'].union(good_table[countries]['unique_reviews'])
                 diff_table[countries]['count_rev']=len(list(diff_table[countries]['unique_reviews']))
                 for tok in bad_table[countries]['tokens'].keys():
-                    diff_table[countries]['tokens'][tok]={}
                     if tok in good_table[countries]['tokens'].keys():
+                        diff_table[countries]['tokens'][tok] = {}
                         diff_table[countries]['tokens'][tok]['good'] = good_table[countries]['tokens'][tok]
                         diff_table[countries]['tokens'][tok]['bad'] = bad_table[countries]['tokens'][tok]
                         diff_table[countries]['tokens'][tok]['diff'] = good_table[countries]['tokens'][tok]-bad_table[countries]['tokens'][tok]
