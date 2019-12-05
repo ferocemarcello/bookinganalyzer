@@ -29,8 +29,13 @@ def cluster(csv_reader):
             cluster_tourist_hotel[countries]['sum']=[0]*len(values)#sum calculated on the sentences
             cluster_tourist_hotel[countries]['count_rev']=0
             cluster_tourist_hotel[countries]['unique_reviews'] = set()
-        cluster_tourist_hotel[countries]['unique_reviews'].add(id)
-        cluster_tourist_hotel[countries]['sum']=numpy.add(cluster_tourist_hotel[countries]['sum'], values)
+        if id in cluster_tourist_hotel[countries]['unique_reviews']:
+            for i in range(len(values)):
+                if values[i] == 1 and cluster_tourist_hotel[countries]['sum'][i] == 0:
+                    cluster_tourist_hotel[countries]['sum'][i] = 1
+        else:
+            cluster_tourist_hotel[countries]['unique_reviews'].add(id)
+            cluster_tourist_hotel[countries]['sum'] = numpy.add(cluster_tourist_hotel[countries]['sum'], values)
     for countries in cluster_tourist_hotel.keys():
         #count calculated on the unique id
         cluster_tourist_hotel[countries]['count_rev']=len(list(cluster_tourist_hotel[countries]['unique_reviews']))
