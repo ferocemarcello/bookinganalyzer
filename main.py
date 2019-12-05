@@ -32,7 +32,7 @@ if __name__ == '__main__':
     #bow_cluster_nation.do('booking_keywords.txt')
     #bow_cluster_country_tourist_hotel.do('booking_keywords.txt')
     #indexmanager.build_country_indices()
-    frequence_difference_bow_creator.do('booking_keywords.txt')
+    #frequence_difference_bow_creator.do('booking_keywords.txt')
     frequence_difference_bow_creator.filter('booking_keywords.txt')
     frequence_difference_bow_creator.build_association_count_list('booking_keywords.txt')
 

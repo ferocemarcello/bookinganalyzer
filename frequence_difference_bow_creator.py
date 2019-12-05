@@ -116,7 +116,6 @@ def do(originfile):
             writer.writerow(['Tourist_Country_Index', 'Tourist_Country', 'Hotel_Country_Index', 'Hotel_Country',
                              'Total number of unique reviews', 'Token_Index', 'Token', 'Token_Frequence_in_Good',
                              'Token_Frequence_in_Bad', 'Difference'])
-            print(diff_tables.keys())
             for countries in diff_tables[keyword].keys():
                 for tok in diff_tables[keyword][countries]['tokens'].keys():
                     writer.writerow([country_ind['country_to_index'][countries[0]], countries[0],
@@ -148,9 +147,9 @@ def filter(originfile):
     combs=dict()
     k_values=dict()
     k_values['breakfast']=6
-    k_values['bedroom']=13
-    k_values['bathroom']=3
-    k_values['location']=4
+    k_values['bedroom']=5
+    k_values['bathroom']=4
+    k_values['location']=13
     for keyword in list(keywords.keys()):
         if keyword in ['breakfast', 'bedroom', 'bathroom' ,'location']:
             combs[keyword]=set()
