@@ -40,6 +40,7 @@ def get_diff_table(good_table, bad_table, tokenset,common_tokens=True):
                 diff_table[countries]['count_rev']=len(list(diff_table[countries]['unique_reviews']))
                 for tok in bad_table[countries]['tokens'].keys():
                     if tok in good_table[countries]['tokens'].keys():
+                        tokenset.add(tok)
                         diff_table[countries]['tokens'][tok] = {}
                         diff_table[countries]['tokens'][tok]['good'] = good_table[countries]['tokens'][tok]
                         diff_table[countries]['tokens'][tok]['bad'] = bad_table[countries]['tokens'][tok]
@@ -117,6 +118,7 @@ def do(originfile):
                              'Token_Frequence_in_Bad', 'Difference'])
             for countries in diff_tables[keyword].keys():
                 for tok in diff_tables[keyword][countries]['tokens'].keys():
+                    print(diff_tables.keys())
                     writer.writerow([country_ind['country_to_index'][countries[0]], countries[0],
                                      country_ind['country_to_index'][countries[1]], countries[1],
                                      diff_tables[keyword][countries]['count_rev'], token_index['token_to_index'][tok], tok,
