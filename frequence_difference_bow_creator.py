@@ -273,17 +273,30 @@ def filter(originfile):
                 tokens_reduced.add(line[2])
     token_index=dict()
     country_index=dict()
+    token_index_reduced = dict()
+    country_index_reduced = dict()
     old_cont_index=indexmanager.get_hotel_country_index()
     old_tok_index = indexmanager.get_token_index()
     country_list=list(newdestinations.union(origins))
     old_cont_to_new=dict()
     old_tok_to_new= dict()
+    old_cont_to_new_reduced = dict()
+    old_tok_to_new_reduced = dict()
+    tokenlist=list(tokens)
+    tokenlist_reduced=list(tokens_reduced)
+    country_list_reduced=list(newdestinations_reduced.union(origins_reduced))
     for i in range(1,len(country_list)+1):
         country_index[i]=old_cont_index['index_to_country'][int(country_list[i-1])]
         old_cont_to_new[int(country_list[i-1])]=i
-    for i in range(1,len(tokens)):
-        token_index[i]=old_tok_index['index_to_token'][int(list(tokens)[i-1])]
-        old_tok_to_new[int(list(tokens)[i-1])]=i
+    for i in range(1,len(tokenlist)+1):
+        token_index[i]=old_tok_index['index_to_token'][int(tokenlist[i-1])]
+        old_tok_to_new[int(tokenlist[i-1])]=i
+    for i in range(1,len(country_list_reduced)+1):
+        country_index_reduced[i]=old_cont_index['index_to_country'][int(country_list_reduced[i-1])]
+        old_cont_to_new_reduced[int(country_list_reduced[i-1])]=i
+    for i in range(1,len(tokenlist)+1):
+        token_index_reduced[i]=old_tok_index['index_to_token'][int(tokenlist_reduced[i-1])]
+        old_tok_to_new_reduced[int(tokenlist_reduced[i-1])]=i
     with open('resources/bow/tourist_hotel_country_freq/diff/filtered/withcomb/token_index.csv', mode='w') as file:
         writer = csv.writer(file, delimiter='|', quotechar='"',
                             quoting=csv.QUOTE_MINIMAL)
@@ -313,11 +326,8 @@ def filter(originfile):
             writer.writerow(['country_origin_index','country_destination_index','token_index','frequence_difference'])
             for line in lines_dict[keyword]:
                 if line[0] in origins and line[1] in newdestinations:
-                    '''try:
-                        newline=[old_cont_to_new[int(line[0])],old_cont_to_new[int(line[1])],old_tok_to_new[int(line[2])],line[3]]
-                    except:
-                        newline=line'''
-                    writer.writerow(line)
+                    newline=[old_cont_to_new[int(line[0])],old_cont_to_new[int(line[1])],old_tok_to_new[int(line[2])],line[3]]
+                    writer.writerow(newline)
         with open('resources/bow/tourist_hotel_country_freq/diff/filtered/withcomb/reduced/' + keyword + '.csv',
                   mode='w') as file:
             writer = csv.writer(file, delimiter='|', quotechar='"',
