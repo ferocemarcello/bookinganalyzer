@@ -144,7 +144,6 @@ def filter(originfile):
     ass_count_count=dict()
     ass_count_count['origin_tourist'] = dict()
     ass_count_count['destination_hotel'] = dict()
-    combs=dict()
     k_values=dict()
     k_values['breakfast']=6
     k_values['bedroom']=5
@@ -152,7 +151,6 @@ def filter(originfile):
     k_values['location']=13
     for keyword in list(keywords.keys()):
         if keyword in ['breakfast', 'bedroom', 'bathroom' ,'location']:
-            combs[keyword]=set()
             ass_count_count['origin_tourist'][keyword]=dict()
             ass_count_count['destination_hotel'][keyword] = dict()
             countries['origin'][keyword] = set()
@@ -169,7 +167,6 @@ def filter(originfile):
                     next(csv_reader)
                     for row in csv_reader:
                         if int(row[4])>=100 and row[1]!='' and row[1]!='no_country' and row[3]!='no_country':
-                            combs[keyword].add((row[0],row[2]))
                             lines.append([row[0],row[2],row[5],row[9]])
                             countries['origin'][keyword].add(row[0])
                             countries['destination'][keyword].add(row[2])
@@ -213,7 +210,7 @@ def filter(originfile):
                                         quoting=csv.QUOTE_MINIMAL)
                     writer.writerow(
                         ['country_origin_index', 'country_destination_index', 'token_index', 'frequence_difference'])
-                    for line in lines_reduced_dict[keyword]:
+                    for line in lines_dict[keyword]:
                         if line[0] in origins_sep and line[1] in newdestinations_sep:
                             writer.writerow(line)
                 file.close()
@@ -231,16 +228,14 @@ def filter(originfile):
              validkeywords]
     ass = dict()
     ass_reduced=dict()
-    common_tokens=dict()
+    tokens=set()
     for line in lines:
         ass[lines.index(line)] = dict()
         for l in line:
-            if (l[0],l[1]) not in common_tokens.keys():
-                common_tokens[(l[0],l[1])]=set()
-            common_tokens[(l[0], l[1])].add(l[2])
             if l[0] not in ass[lines.index(line)].keys():
                 ass[lines.index(line)][l[0]] = set()
             ass[lines.index(line)][l[0]].add(l[1])
+    tokens_reduced=set()
     for line in lines_reduced:
         ass_reduced[lines_reduced.index(line)] = dict()
         for l in line:
@@ -257,6 +252,9 @@ def filter(originfile):
                                        ass[keyword][key]>=(destinations)]) for keyword in
                                   ass.keys()])
     newdestinations=set.intersection(*[set.intersection(*[ass[keyword][k] for k in origins]) for keyword in ass.keys()])
+    for line in lines_dict[keyword]:
+        if line[0] in origins and line[1] in newdestinations:
+            tokens.add(line[2])
     k=12
     destinations_reduced = set.intersection(
         *[set.intersection(*[ass_reduced[keyword][key]
@@ -268,20 +266,22 @@ def filter(originfile):
                                  ass_reduced.keys()])
     newdestinations_reduced = set.intersection(
         *[set.intersection(*[ass_reduced[keyword][k] for k in origins_reduced]) for keyword in ass.keys()])
+    for line in lines_reduced[keyword]:
+        if line[0] in origins_reduced and line[1] in newdestinations_reduced:
+            tokens_reduced.add(line[2])
     token_index=dict()
     country_index=dict()
     old_cont_index=indexmanager.get_hotel_country_index()
     old_tok_index = indexmanager.get_token_index()
-    country_list=list(destinations.union(origins))
-    token_list=list(set.union(*[common_tokens[k] for k in common_tokens.keys()]))
+    country_list=list(newdestinations.union(origins))
     old_cont_to_new=dict()
     old_tok_to_new= dict()
     for i in range(1,len(country_list)+1):
         country_index[i]=old_cont_index['index_to_country'][int(country_list[i-1])]
         old_cont_to_new[int(country_list[i-1])]=i
-    for i in range(1,len(token_list)):
-        token_index[i]=old_tok_index['index_to_token'][int(token_list[i-1])]
-        old_tok_to_new[int(token_list[i-1])]=i
+    for i in range(1,len(tokens)):
+        token_index[i]=old_tok_index['index_to_token'][int(list(tokens)[i-1])]
+        old_tok_to_new[int(list(tokens)[i-1])]=i
     with open('resources/bow/tourist_hotel_country_freq/diff/filtered/withcomb/token_index.csv', mode='w') as file:
         writer = csv.writer(file, delimiter='|', quotechar='"',
                             quoting=csv.QUOTE_MINIMAL)
