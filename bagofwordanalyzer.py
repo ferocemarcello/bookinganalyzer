@@ -126,7 +126,7 @@ def analyze(originfile):
                     print(str(time.time() - start_time) + ' seconds to compute ' + keyword + ' ' + emotion)
         # Compute bigrams.
         if len(all_set) > 0:
-            corpus_tok=[(x[0],list(x[1])) for x in all_set]
+            corpus_tok=[(list(x[0]),list(x[1])) for x in all_set]
             corpustokonly = [r[1] for r in corpus_tok]
             print("doing bigrams")
             # Add bigrams and trigrams to docs (only ones that appear 10 times or more).
