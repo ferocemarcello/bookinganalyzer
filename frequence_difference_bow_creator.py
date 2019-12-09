@@ -252,9 +252,10 @@ def filter(originfile):
                                        ass[keyword][key]>=(destinations)]) for keyword in
                                   ass.keys()])
     newdestinations=set.intersection(*[set.intersection(*[ass[keyword][k] for k in origins]) for keyword in ass.keys()])
-    for line in lines_dict[keyword]:
-        if line[0] in origins and line[1] in newdestinations:
-            tokens.add(line[2])
+    for keyword in lines_dict.keys():
+        for line in lines_dict[keyword]:
+            if line[0] in origins and line[1] in newdestinations:
+                tokens.add(line[2])
     k=12
     destinations_reduced = set.intersection(
         *[set.intersection(*[ass_reduced[keyword][key]
