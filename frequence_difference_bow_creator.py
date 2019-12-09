@@ -252,9 +252,10 @@ def filter(originfile):
                                        ass[keyword][key]>=(destinations)]) for keyword in
                                   ass.keys()])
     newdestinations=set.intersection(*[set.intersection(*[ass[keyword][k] for k in origins]) for keyword in ass.keys()])
-    for line in lines:
-        if line[0] in origins and line[1] in newdestinations:
-            tokens.add(line[2])
+    for keyword in lines_dict.keys():
+        for line in lines_dict[keyword]:
+            if line[0] in origins and line[1] in newdestinations:
+                tokens.add(line[2])
     k=12
     destinations_reduced = set.intersection(
         *[set.intersection(*[ass_reduced[keyword][key]
@@ -266,9 +267,10 @@ def filter(originfile):
                                  ass_reduced.keys()])
     newdestinations_reduced = set.intersection(
         *[set.intersection(*[ass_reduced[keyword][k] for k in origins_reduced]) for keyword in ass.keys()])
-    for line in lines_reduced:
-        if line[0] in origins_reduced and line[1] in newdestinations_reduced:
-            tokens_reduced.add(line[2])
+    for keyword in lines_reduced_dict.keys():
+        for line in lines_reduced_dict[keyword]:
+            if line[0] in origins_reduced and line[1] in newdestinations_reduced:
+                tokens_reduced.add(line[2])
     token_index=dict()
     country_index=dict()
     old_cont_index=indexmanager.get_hotel_country_index()
