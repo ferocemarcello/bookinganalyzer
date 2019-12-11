@@ -63,7 +63,7 @@ def thread_function_row_only(row):
         toks.append(tok)
     #toks=[tok for tok in toks if len(wordnet.synsets(tok)) > 0 and wordnet.synsets(tok)[0].pos() == 'n']
     return (row,toks)
-def analyze(originfile):
+def analyze(originfile, all=False):
     keywords = helper.getKeywords(originfile)
     os.chdir('./resources/stanford-corenlp-full-2018-10-05')
     os.system('kill $(lsof -t -i:9000)')
@@ -77,7 +77,6 @@ def analyze(originfile):
     os.chdir('../../')
     nlp_wrapper = StanfordCoreNLP('http://localhost:9000')
     print("Number of processors: ", mp.cpu_count())
-    all=True
     if all:
         all_set=set()
         for emotion in ['Good', 'Bad']:

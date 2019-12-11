@@ -42,30 +42,52 @@ def cluster(csv_reader):
         cluster_tourist_hotel[countries]['rel_freq']=[x/cluster_tourist_hotel[countries]['count_rev'] for x in cluster_tourist_hotel[countries]['sum']]
     return firstrow, cluster_tourist_hotel
 
-def do(originfile):
-    keywords = helper.getKeywords(originfile)
-    for emotion in ['Good', 'Bad']:
-        print("begin " + emotion)
-        for keyword in list(keywords.keys()):
-            start_time = time.time()
-            goforward=True
-            print(keyword + ' ---- ' + time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()))
-            try:
-                with open('resources/bow/'+keyword+'_'+emotion.lower()+'.csv') as csv_file:
-                    csv_reader = csv.reader(csv_file, delimiter='|')
-                    tokens,cluster_tourist_hotel=cluster(csv_reader)
-                csv_file.close()
-            except:
-                goforward=False
-            if goforward:
-                if not os.path.exists('resources/bow/tourist_hotel_country_freq/'):
-                    os.makedirs('resources/bow/tourist_hotel_country_freq/')
-                with open('resources/bow/tourist_hotel_country_freq/' + keyword + '_' + emotion.lower() + '.csv', mode='w') as file:
-                    writer = csv.writer(file, delimiter='|', quotechar='"',
-                                        quoting=csv.QUOTE_MINIMAL)
-                    writer.writerow([''] * 2 + ['unique IDs'] + tokens)
-                    for country in cluster_tourist_hotel.keys():
-                        writer.writerow([country[0],country[1]]+[cluster_tourist_hotel[country]['count_rev']]+list(map("{:.15f}".format, cluster_tourist_hotel[country]['rel_freq']))+list(cluster_tourist_hotel[country]['unique_reviews']))
-                file.close()
-            print('------------------------------------------------------')
-            print(str(time.time() - start_time) + ' seconds to compute ' + keyword + ' ' + emotion)
+def do(originfile, all=False):
+    if all:
+        start_time = time.time()
+        print('all ----- ' + time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()))
+        with open('resources/bow/all.csv') as csv_file:
+            csv_reader = csv.reader(csv_file, delimiter='|')
+            tokens, cluster_tourist_hotel = cluster(csv_reader)
+        csv_file.close()
+        if not os.path.exists('resources/bow/tourist_hotel_country_freq/'):
+            os.makedirs('resources/bow/tourist_hotel_country_freq/')
+        with open('resources/bow/tourist_hotel_country_freq/all.csv',
+                  mode='w') as file:
+            writer = csv.writer(file, delimiter='|', quotechar='"',
+                                quoting=csv.QUOTE_MINIMAL)
+            writer.writerow([''] * 2 + ['unique IDs'] + tokens)
+            for country in cluster_tourist_hotel.keys():
+                writer.writerow([country[0], country[1]] + [cluster_tourist_hotel[country]['count_rev']] + list(
+                    map("{:.15f}".format, cluster_tourist_hotel[country]['rel_freq'])) + list(
+                    cluster_tourist_hotel[country]['unique_reviews']))
+        file.close()
+        print('------------------------------------------------------')
+        print(str(time.time() - start_time) + ' seconds to compute all')
+    else:
+        keywords = helper.getKeywords(originfile)
+        for emotion in ['Good', 'Bad']:
+            print("begin " + emotion)
+            for keyword in list(keywords.keys()):
+                start_time = time.time()
+                goforward=True
+                print(keyword + ' ---- ' + time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()))
+                try:
+                    with open('resources/bow/'+keyword+'_'+emotion.lower()+'.csv') as csv_file:
+                        csv_reader = csv.reader(csv_file, delimiter='|')
+                        tokens,cluster_tourist_hotel=cluster(csv_reader)
+                    csv_file.close()
+                except:
+                    goforward=False
+                if goforward:
+                    if not os.path.exists('resources/bow/tourist_hotel_country_freq/'):
+                        os.makedirs('resources/bow/tourist_hotel_country_freq/')
+                    with open('resources/bow/tourist_hotel_country_freq/' + keyword + '_' + emotion.lower() + '.csv', mode='w') as file:
+                        writer = csv.writer(file, delimiter='|', quotechar='"',
+                                            quoting=csv.QUOTE_MINIMAL)
+                        writer.writerow([''] * 2 + ['unique IDs'] + tokens)
+                        for country in cluster_tourist_hotel.keys():
+                            writer.writerow([country[0],country[1]]+[cluster_tourist_hotel[country]['count_rev']]+list(map("{:.15f}".format, cluster_tourist_hotel[country]['rel_freq']))+list(cluster_tourist_hotel[country]['unique_reviews']))
+                    file.close()
+                print('------------------------------------------------------')
+                print(str(time.time() - start_time) + ' seconds to compute ' + keyword + ' ' + emotion)

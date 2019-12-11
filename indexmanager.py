@@ -153,3 +153,9 @@ def get_country_to_code():
             country_hotel_code[row[0]] = row[1]
     csv_file.close()
     return country_hotel_code
+
+
+def update_token_index(tokenset):
+    oldtokenset=set(get_token_index()['token_to_index'].keys())
+    newtokenset=tokenset.union(oldtokenset)
+    build_token_index(newtokenset)
