@@ -41,14 +41,46 @@ def cluster(csv_reader):
         cluster_tourist_hotel[countries]['count_rev']=len(list(cluster_tourist_hotel[countries]['unique_reviews']))
         cluster_tourist_hotel[countries]['rel_freq']=[x/cluster_tourist_hotel[countries]['count_rev'] for x in cluster_tourist_hotel[countries]['sum']]
     return firstrow, cluster_tourist_hotel
-
+def cluster_all(csv_reader):
+    firstrow = next(csv_reader)
+    maxlentokens = firstrow.count('')
+    firstrow = firstrow[maxlentokens:]
+    cluster_tourist_hotel = {}
+    country_hotel_code = get_country_to_code()
+    for row in csv_reader:
+        id=row[0]
+        country_hot=row[2]
+        if row[1] == '':
+            country_tour='no_country'
+        else:
+            country_tour = country_hotel_code[row[1]]
+        countries=(country_tour,country_hot)
+        values=row[maxlentokens:]
+        values=list(map(int, values))
+        if countries not in cluster_tourist_hotel.keys():
+            cluster_tourist_hotel[countries]={}
+            cluster_tourist_hotel[countries]['sum']=[0]*len(values)#sum calculated on the sentences
+            cluster_tourist_hotel[countries]['count_rev']=0
+            cluster_tourist_hotel[countries]['unique_reviews'] = set()
+        if id in cluster_tourist_hotel[countries]['unique_reviews']:
+            for i in range(len(values)):
+                if values[i] == 1 and cluster_tourist_hotel[countries]['sum'][i] == 0:
+                    cluster_tourist_hotel[countries]['sum'][i] = 1
+        else:
+            cluster_tourist_hotel[countries]['unique_reviews'].add(id)
+            cluster_tourist_hotel[countries]['sum'] = numpy.add(cluster_tourist_hotel[countries]['sum'], values)
+    for countries in cluster_tourist_hotel.keys():
+        #count calculated on the unique id
+        cluster_tourist_hotel[countries]['count_rev']=len(list(cluster_tourist_hotel[countries]['unique_reviews']))
+        cluster_tourist_hotel[countries]['rel_freq']=[x/cluster_tourist_hotel[countries]['count_rev'] for x in cluster_tourist_hotel[countries]['sum']]
+    return firstrow, cluster_tourist_hotel
 def do(originfile, all=False):
     if all:
         start_time = time.time()
         print('all ----- ' + time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()))
         with open('resources/bow/all.csv') as csv_file:
             csv_reader = csv.reader(csv_file, delimiter='|')
-            tokens, cluster_tourist_hotel = cluster(csv_reader)
+            tokens, cluster_tourist_hotel = cluster_all(csv_reader)
         csv_file.close()
         if not os.path.exists('resources/bow/tourist_hotel_country_freq/'):
             os.makedirs('resources/bow/tourist_hotel_country_freq/')

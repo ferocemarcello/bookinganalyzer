@@ -479,7 +479,6 @@ def build_association_count_list(originfile):
     file.writelines(lines_reduced)
     file.close()
 
-
 def filterallsep(originfile):
     keywords = helper.getKeywords(originfile)
     old_cont_index = indexmanager.get_hotel_country_index()

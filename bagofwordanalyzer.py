@@ -6,9 +6,13 @@ import time
 import multiprocessing as mp
 import nltk
 import spacy
+import itertools
 import subprocess
+from nltk.tokenize import sent_tokenize
 from pycorenlp import StanfordCoreNLP
 from sklearn.feature_extraction.text import TfidfVectorizer
+from langid.langid import LanguageIdentifier, model
+import db
 import helper
 from nltk.corpus import wordnet
 import gensimldamine
@@ -17,6 +21,8 @@ from gensim.models import Phrases
 from nltk import word_tokenize
 from spellchecker import SpellChecker
 from multiprocessing import Value
+identifier = LanguageIdentifier.from_modelstring(model, norm_probs=True)
+from textblob import TextBlob
 negationstopset=set(['aren', 'couldn', 'didn', 'doesn', 'hadn', 'hasn', 'haven', 'isn','mustn', 'nan', 'negative', 'shan', 'shouldn', 'wasn', 'weren', 'won', 'wouldn', "no", "nor", "not"])
 stopset = set(
         ["i", "me", "my", "myself", "we", "our", "ours", "ourselves", "you", "your", "yours", "yourself", "yourselves",
@@ -36,6 +42,77 @@ def init_globals(cnt,spl,nlpw):
     counter = cnt
     spell=spl
     nlp_wrapper=nlpw
+def thread_function_row_only_all(row):
+    text_good=row[3].lower()
+    text_bad = row[4].lower()
+    toks_bad=[]
+    toks_good = []
+    counter.value+=1
+    if counter.value%10000==0:
+        print(str(counter.value))
+    if text_good=='':
+        toks_good=[]
+    else:
+        for con in constr_conjs:
+            if con in text_good:
+                toks_good=[]
+        lan = identifier.classify(text_good)[0]
+        acc = identifier.classify(text_good)[1]
+        if lan == 'en' and acc >= 0.9 :
+            sents=sent_tokenize(text_good)
+            toks_good = list(itertools.chain.from_iterable([[spell.correction(tok['lemma']) for tok in
+                         nlp_wrapper.annotate(sent, properties={'annotators': 'lemma, pos', 'outputFormat': 'json', })[
+                             'sentences'][0]['tokens']
+                         if tok['pos'] in ['NNS', 'NN'] and len(tok['lemma']) > 1] for sent in sents]))
+            toapp = []
+            for i in range(len(toks_good)):
+                if '/' in toks_good[i]:
+                    for tok in toks_good[i].split('/'):
+                        toapp.append(tok)
+            for tok in toapp:
+                toks_good.append(tok)
+            toapp = []
+            for i in range(len(toks_good)):
+                if '-' in toks_good[i]:
+                    for tok in toks_good[i].split('-'):
+                        toapp.append(tok)
+            for tok in toapp:
+                toks_good.append(tok)
+    if text_bad=='':
+        toks_bad=[]
+    else:
+        for con in constr_conjs:
+            if con in text_bad:
+                toks_bad=[]
+        # toks=[tok for tok in toks if len(wordnet.synsets(tok)) > 0 and wordnet.synsets(tok)[0].pos() == 'n']
+        lan = identifier.classify(text_bad)[0]
+        acc = identifier.classify(text_bad)[1]
+        if lan == 'en' and acc >= 0.9:
+            sents = sent_tokenize(text_bad)
+            toks_bad = list(itertools.chain.from_iterable([[spell.correction(tok['lemma']) for tok in
+                                                             nlp_wrapper.annotate(sent,
+                                                                                  properties={'annotators': 'lemma, pos',
+                                                                                              'outputFormat': 'json', })[
+                                                                 'sentences'][0]['tokens']
+                                                             if tok['pos'] in ['NNS', 'NN'] and len(tok['lemma']) > 1] for
+                                                            sent in sents]))
+            toapp = []
+            for i in range(len(toks_bad)):
+                if '/' in toks_bad[i]:
+                    for tok in toks_bad[i].split('/'):
+                        toapp.append(tok)
+            for tok in toapp:
+                toks_bad.append(tok)
+            toapp = []
+            for i in range(len(toks_bad)):
+                if '-' in toks_bad[i]:
+                    for tok in toks_bad[i].split('-'):
+                        toapp.append(tok)
+            for tok in toapp:
+                toks_bad.append(tok)
+    if toks_good+toks_bad==[]:
+        return None
+    return (row,toks_good+toks_bad)
 def thread_function_row_only(row):
     text=row[2].lower()
     counter.value+=1
@@ -78,7 +155,41 @@ def analyze(originfile, all=False):
     nlp_wrapper = StanfordCoreNLP('http://localhost:9000')
     print("Number of processors: ", mp.cpu_count())
     if all:
-        all_set=set()
+        conn = db.db_connection()
+        conn.connect()
+        dbo = db.db_operator(conn)
+        query = 'SELECT reviews.ReviewID, reviews.Country as \'Tourist_Country\', ' \
+                'hotels.CountryID as \'Hotel Country\', Good, reviews.Bad ' \
+                'FROM masterthesis.reviews, masterthesis.hotels ' \
+                'where hotels.HotelNumber=reviews.HotelNumber;'
+        results=[list(x) for x in dbo.execute(query)]
+        conn.disconnect()
+
+        spell = SpellChecker()
+        counter = Value('i', 1)
+        print("starting analysis")
+        print("tot number rows= "+str(len(results)))
+        pool = mp.Pool(initializer=init_globals, processes=mp.cpu_count() * 2,
+                       initargs=(counter, spell, nlp_wrapper,), )
+        corpus_tok = pool.map_async(thread_function_row_only_all, [doc for doc in results]).get()
+        print('pool close')
+        pool.close()
+        print('pool join')
+        pool.join()
+        print("beginning removal of sents with contrast")
+        corpus_tok = [r for r in corpus_tok if r != None]
+        corpustokonly = [r[1] for r in corpus_tok]
+        print("doing bigrams")
+        # Add bigrams and trigrams to docs (only ones that appear 10 times or more).
+        bigram = Phrases(corpustokonly, min_count=0.001 * len(corpus_tok))
+        for idx in range(len(corpus_tok)):
+            for token in bigram[corpustokonly[idx]]:
+                if '_' in token:
+                    # Token is a bigram, add to document.
+                    corpus_tok[idx][1].append(token)
+        from gensim.corpora import Dictionary
+        print("writing frequence file")
+        '''all_set=set()
         for emotion in ['Good', 'Bad']:
             print("begin " + emotion)
             for keyword in list(keywords.keys()):
@@ -191,6 +302,60 @@ def analyze(originfile, all=False):
                     writer.writerow(corpus_tok[i][0] + corpus_tok[i][1] + [''] * (
                             toplen - len(corpus_tok[i][0] + corpus_tok[i][1])) + corpus_bow[i])
             file.close()
+        '''
+        # Create a dictionary representation of the documents.
+        dictionary = Dictionary(corpustokonly)
+
+        alltok = []
+        freq = []
+        for doc in corpustokonly:
+            for tok in doc:
+                alltok.append(tok)
+        lencorpus = len(corpus_tok)
+        print("len dictionary = " + str(len(dictionary.keys())))
+        i = 0
+        for t in dictionary:
+            i += 1
+            if i % 1000 == 0:
+                print("analyzing token " + str(i))
+            freqsent = 0
+            for doc in corpustokonly:
+                if dictionary.get(t) in doc:
+                    freqsent += 1
+            freq.append((t, dictionary.get(t), alltok.count(dictionary.get(t)),
+                         alltok.count(dictionary.get(t)) / len(alltok), freqsent, freqsent / lencorpus))
+        freq.sort(key=lambda tup: tup[5], reverse=True)
+        for i in range(len(freq)):
+            freq[i] = tuple(list(freq[i]) + [i])
+        if not os.path.exists('resources/bow/allfreq/stanford/'):
+            os.makedirs('resources/bow/allfreq/stanford/')
+        with open('resources/bow/allfreq/stanford/all.txt', 'w') as f:
+            for item in freq:
+                f.write(str(item) + '\n')
+            f.close()
+
+        print("writing bow file")
+        top_tokens = [f[1] for f in freq[:500]]
+        lentoptok = len(top_tokens)
+        corpus_bow = {}
+        toplen = 0
+        for i in range(len(corpus_tok)):
+            corpus_bow[i] = [0] * lentoptok
+            if len(corpus_tok[i][0] + corpus_tok[i][1]) > toplen:
+                toplen = len(corpus_tok[i][0] + corpus_tok[i][1])
+            for tok in corpus_tok[i][1]:
+                if tok in top_tokens:
+                    corpus_bow[i][top_tokens.index(tok)] = 1
+
+        with open('resources/bow/all.csv', mode='w') as file:
+            writer = csv.writer(file, delimiter='|', quotechar='"',
+                                quoting=csv.QUOTE_MINIMAL)
+            writer.writerow([''] * toplen + top_tokens)
+            for i in corpus_bow.keys():
+                writer.writerow(
+                    corpus_tok[i][0] + corpus_tok[i][1] + [''] * (toplen - len(corpus_tok[i][0] + corpus_tok[i][1])) +
+                    corpus_bow[i])
+        file.close()
     else:
         for emotion in ['Good','Bad']:
             print("begin " + emotion)
