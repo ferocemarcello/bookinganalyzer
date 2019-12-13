@@ -360,18 +360,27 @@ def analyze(originfile, all=False):
         for emotion in ['Good','Bad']:
             print("begin " + emotion)
             for keyword in list(keywords.keys()):
-                if not(emotion=='Good' and keyword=='cleaning'):
+                if emotion=='Good' and keyword=='cleaning':
                     start_time = time.time()
                     print(keyword+' ---- '+time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()))
                     raw_corpus = helper.getRawCorpus(
                         csv_file=open('resources/csvs/' + keyword + '_' + emotion.lower() + '.csv', mode='r',
                                       encoding="utf8", newline='\n'), additionaldetails=True)
                     #corpus = helper.getCorpusTextFromRaw(raw_corpus)
+                    raw_corpus_half_one = raw_corpus[:int(len(raw_corpus) / 2)]
+                    raw_corpus_half_two=raw_corpus[int(len(raw_corpus)/2):]
                     spell = SpellChecker()
                     counter = Value('i', 1)
+                    corpus_tok_all=[]
                     print("starting analysis")
-                    pool = mp.Pool(initializer=init_globals, processes=mp.cpu_count() * 2, initargs=(counter,spell,nlp_wrapper,), )
-                    corpus_tok = pool.map_async(thread_function_row_only, [doc for doc in raw_corpus]).get()
+                    for rc in [raw_corpus_half_one,raw_corpus_half_two]:
+                        pool = mp.Pool(initializer=init_globals, processes=mp.cpu_count() * 2, initargs=(counter,spell,nlp_wrapper,), )
+                        corpus_tok = pool.map_async(thread_function_row_only, [doc for doc in rc]).get()
+                        print('pool close')
+                        pool.close()
+                        print('pool join')
+                        pool.join()
+                        corpus_tok_all+=[r for r in corpus_tok if r != None]
                     '''
                     corpus_tok=[]
                     s=0
@@ -406,12 +415,8 @@ def analyze(originfile, all=False):
                             for tok in toapp:
                                 toks.append(tok)
                             corpus_tok.append(toks)'''
-                    print('pool close')
-                    pool.close()
-                    print('pool join')
-                    pool.join()
-                    print("beginning removal of sents with contrast")
-                    corpus_tok = [r for r in corpus_tok if r != None]
+                    #print("beginning removal of sents with contrast")
+                    corpus_tok=corpus_tok_all
                     ###############################################################################
                     # We find bigrams in the documents. Bigrams are sets of two adjacent words.
                     # Using bigrams we can get phrases like "machine_learning" in our output
