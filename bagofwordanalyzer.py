@@ -155,6 +155,7 @@ def analyze(originfile, all=False):
     nlp_wrapper = StanfordCoreNLP('http://localhost:9000')
     print("Number of processors: ", mp.cpu_count())
     if all:
+        print("all")
         conn = db.db_connection()
         conn.connect()
         dbo = db.db_operator(conn)
@@ -357,6 +358,7 @@ def analyze(originfile, all=False):
                     corpus_bow[i])
         file.close()
     else:
+        print("not all")
         for emotion in ['Good','Bad']:
             print("begin " + emotion)
             for keyword in list(keywords.keys()):
