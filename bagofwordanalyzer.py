@@ -112,7 +112,7 @@ def thread_function_row_only_all(row):
                 toks_bad.append(tok)
     if toks_good+toks_bad==[]:
         return None
-    return (row,toks_good+toks_bad)
+    return (row, toks_good + toks_bad)
 def thread_function_row_only(row):
     text=row[2].lower()
     counter.value+=1
@@ -157,28 +157,32 @@ def analyze(originfile, all=False):
     if all:
         print("all")
         conn = db.db_connection()
-        conn.connect()
         dbo = db.db_operator(conn)
-        query = 'SELECT reviews.ReviewID, reviews.Country as \'Tourist_Country\', ' \
-                'hotels.CountryID as \'Hotel Country\', Good, reviews.Bad ' \
-                'FROM masterthesis.reviews, masterthesis.hotels ' \
-                'where hotels.HotelNumber=reviews.HotelNumber;'
-        results=[list(x) for x in dbo.execute(query)]
-        conn.disconnect()
-
         spell = SpellChecker()
         counter = Value('i', 1)
-        print("starting analysis")
-        print("tot number rows= "+str(len(results)))
-        pool = mp.Pool(initializer=init_globals, processes=mp.cpu_count() * 2,
-                       initargs=(counter, spell, nlp_wrapper,), )
-        corpus_tok = pool.map_async(thread_function_row_only_all, [doc for doc in results]).get()
-        print('pool close')
-        pool.close()
-        print('pool join')
-        pool.join()
-        print("beginning removal of sents with contrast")
-        corpus_tok = [r for r in corpus_tok if r != None]
+        corpus_tok_all=[]
+        for i in range(19):
+            conn.connect()
+            query = 'SELECT reviews.ReviewID, reviews.Country as \'Tourist_Country\', ' \
+                    'hotels.CountryID as \'Hotel Country\', Good, reviews.Bad ' \
+                    'FROM masterthesis.reviews, masterthesis.hotels ' \
+                    'where hotels.HotelNumber=reviews.HotelNumber limit 1000000 offset '+str(1000000*i)+';'
+            results = [list(x) for x in dbo.execute(query)];
+            conn.disconnect()
+            print("got results from sql")
+            print("starting analysis")
+            print("tot number rows= " + str(len(results)))
+            pool = mp.Pool(initializer=init_globals, processes=mp.cpu_count() * 2,
+                           initargs=(counter, spell, nlp_wrapper,), )
+            corpus_tok = pool.map_async(thread_function_row_only_all, [doc for doc in results]).get()
+            print('pool close')
+            pool.close()
+            print('pool join')
+            pool.join()
+            print("beginning removal of sents with contrast")
+            corpus_tok = [r for r in corpus_tok if r != None]
+            corpus_tok_all+=corpus_tok
+        corpus_tok=corpus_tok_all
         corpustokonly = [r[1] for r in corpus_tok]
         print("doing bigrams")
         # Add bigrams and trigrams to docs (only ones that appear 10 times or more).
