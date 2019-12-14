@@ -161,13 +161,13 @@ def analyze(originfile, all=False):
         spell = SpellChecker()
         counter = Value('i', 1)
         corpus_tok_all=[]
-        for i in range(18):
+        for i in range(1800):
             print('i=' +str(i))
             conn.connect()
             query = 'SELECT reviews.ReviewID, reviews.Country as \'Tourist_Country\', ' \
                     'hotels.CountryID as \'Hotel Country\', Good, reviews.Bad ' \
                     'FROM masterthesis.reviews, masterthesis.hotels ' \
-                    'where hotels.HotelNumber=reviews.HotelNumber limit 100000 offset '+str(1900000*i)+';'
+                    'where hotels.HotelNumber=reviews.HotelNumber limit 10000 offset '+str(10000*i)+';'
             results = [list(x) for x in dbo.execute(query)];
             conn.disconnect()
             print("got results from sql")
