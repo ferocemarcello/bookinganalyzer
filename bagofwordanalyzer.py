@@ -161,7 +161,8 @@ def analyze(originfile, all=False):
         spell = SpellChecker()
         counter = Value('i', 1)
         corpus_tok_all=[]
-        for i in range(19):
+        for i in range(18):
+            print('i=' +str(i))
             conn.connect()
             query = 'SELECT reviews.ReviewID, reviews.Country as \'Tourist_Country\', ' \
                     'hotels.CountryID as \'Hotel Country\', Good, reviews.Bad ' \
@@ -181,7 +182,9 @@ def analyze(originfile, all=False):
             pool.join()
             print("beginning removal of sents with contrast")
             corpus_tok = [r for r in corpus_tok if r != None]
+            print('len corpus_tok_reduced= '+str(len(corpus_tok)))
             corpus_tok_all+=corpus_tok
+            print('len corpus_tok_all= ' + str(len(corpus_tok_all)))
         corpus_tok=corpus_tok_all
         corpustokonly = [r[1] for r in corpus_tok]
         print("doing bigrams")
