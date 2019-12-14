@@ -167,7 +167,7 @@ def analyze(originfile, all=False):
             query = 'SELECT reviews.ReviewID, reviews.Country as \'Tourist_Country\', ' \
                     'hotels.CountryID as \'Hotel Country\', Good, reviews.Bad ' \
                     'FROM masterthesis.reviews, masterthesis.hotels ' \
-                    'where hotels.HotelNumber=reviews.HotelNumber limit 1000000 offset '+str(1000000*i)+';'
+                    'where hotels.HotelNumber=reviews.HotelNumber limit 100000 offset '+str(1900000*i)+';'
             results = [list(x) for x in dbo.execute(query)];
             conn.disconnect()
             print("got results from sql")
