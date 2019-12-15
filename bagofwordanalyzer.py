@@ -386,19 +386,20 @@ def analyze(originfile, all=False):
                 if emotion=='Good' and keyword=='cleaning':
                     start_time = time.time()
                     print(keyword+' ---- '+time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()))
-                    raw_corpus = helper.getRawCorpus(
-                        csv_file=open('resources/csvs/' + keyword + '_' + emotion.lower() + '.csv', mode='r',
-                                      encoding="utf8", newline='\n'), additionaldetails=True)
-                    #corpus = helper.getCorpusTextFromRaw(raw_corpus)
-                    raw_corpus_half_one = raw_corpus[:int(len(raw_corpus) / 2)]
-                    raw_corpus_half_two=raw_corpus[int(len(raw_corpus)/2):]
                     spell = SpellChecker()
                     counter = Value('i', 1)
                     corpus_tok_all=[]
-                    print("starting analysis")
-                    for rc in [raw_corpus_half_one,raw_corpus_half_two]:
+                    for i in range(4):
+                        raw_corpus = helper.getRawCorpus(
+                            csv_file=open('resources/csvs/' + keyword + '_' + emotion.lower() + '.csv', mode='r',
+                                          encoding="utf8", newline='\n'), additionaldetails=True, limit=100000, offset=i*100000)
+
+                        #corpus = helper.getCorpusTextFromRaw(raw_corpus)
+                        #raw_corpus_half_one = raw_corpus[:int(len(raw_corpus) / 2)]
+                        #raw_corpus_half_two=raw_corpus[int(len(raw_corpus)/2):]
+                        print("starting analysis")
                         pool = mp.Pool(initializer=init_globals, processes=mp.cpu_count() * 2, initargs=(counter,spell,nlp_wrapper,), )
-                        corpus_tok = pool.map_async(thread_function_row_only, [doc for doc in rc]).get()
+                        corpus_tok = pool.map_async(thread_function_row_only, [doc for doc in raw_corpus]).get()
                         print('pool close')
                         pool.close()
                         print('pool join')
@@ -456,6 +457,7 @@ def analyze(originfile, all=False):
                     #
                     # Compute bigrams.
                     if len(corpus_tok)>0:
+                        print("len corpus_tok: "+str(len(corpus_tok)))
                         corpustokonly=[r[1] for r in corpus_tok]
                         print("doing bigrams")
                         # Add bigrams and trigrams to docs (only ones that appear 10 times or more).
