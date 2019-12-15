@@ -60,10 +60,16 @@ def thread_function_row_only_all(row):
         acc = identifier.classify(text_good)[1]
         if lan == 'en' and acc >= 0.9 :
             sents=sent_tokenize(text_good)
-            toks_good = list(itertools.chain.from_iterable([[spell.correction(tok['lemma']) for tok in
-                         nlp_wrapper.annotate(sent, properties={'annotators': 'lemma, pos', 'outputFormat': 'json', })[
-                             'sentences'][0]['tokens']
-                         if tok['pos'] in ['NNS', 'NN'] and len(tok['lemma']) > 1] for sent in sents]))
+            try:
+
+                toks_good = list(itertools.chain.from_iterable([[spell.correction(tok['lemma']) for tok in
+                             nlp_wrapper.annotate(sent, properties={'annotators': 'lemma, pos', 'outputFormat': 'json', })[
+                                 'sentences'][0]['tokens']
+                             if tok['pos'] in ['NNS', 'NN'] and len(tok['lemma']) > 1] for sent in sents]))
+            except:
+                print(text_good)
+                for sent in text_good:
+                    print(sent)
             toapp = []
             for i in range(len(toks_good)):
                 if '/' in toks_good[i]:
@@ -161,7 +167,7 @@ def analyze(originfile, all=False):
         spell = SpellChecker()
         counter = Value('i', 1)
         corpus_tok_all=[]
-        for i in range(1800):
+        for i in range(74,1800):
             print('i=' +str(i))
             conn.connect()
             query = 'SELECT reviews.ReviewID, reviews.Country as \'Tourist_Country\', ' \
