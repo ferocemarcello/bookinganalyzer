@@ -67,9 +67,17 @@ def thread_function_row_only_all(row):
                                  'sentences'][0]['tokens']
                              if tok['pos'] in ['NNS', 'NN'] and len(tok['lemma']) > 1] for sent in sents]))
             except:
-                print(text_good)
-                for sent in text_good:
-                    print(sent)
+                l=[]
+                for sent in sents:
+                    try:
+                        v=[spell.correction(tok['lemma']) for tok in
+                                 nlp_wrapper.annotate(sent, properties={'annotators': 'lemma, pos', 'outputFormat': 'json', })[
+                                     'sentences'][0]['tokens']
+                                 if tok['pos'] in ['NNS', 'NN'] and len(tok['lemma']) > 1]
+                        l.append(v)
+                    except Exception as e:
+                        pass
+                toks_good = list(itertools.chain.from_iterable(l))
             toapp = []
             for i in range(len(toks_good)):
                 if '/' in toks_good[i]:
@@ -167,13 +175,13 @@ def analyze(originfile, all=False):
         spell = SpellChecker()
         counter = Value('i', 1)
         corpus_tok_all=[]
-        for i in range(74,1800):
+        for i in range(179):
             print('i=' +str(i))
             conn.connect()
             query = 'SELECT reviews.ReviewID, reviews.Country as \'Tourist_Country\', ' \
                     'hotels.CountryID as \'Hotel Country\', Good, reviews.Bad ' \
                     'FROM masterthesis.reviews, masterthesis.hotels ' \
-                    'where hotels.HotelNumber=reviews.HotelNumber limit 10000 offset '+str(10000*i)+';'
+                    'where hotels.HotelNumber=reviews.HotelNumber limit 100000 offset '+str(100000*i)+';'
             results = [list(x) for x in dbo.execute(query)];
             conn.disconnect()
             print("got results from sql")
