@@ -152,10 +152,11 @@ def thread_function_row_only(row):
         nlp_wrapper.annotate(text,properties={'annotators': 'lemma, pos','outputFormat': 'json',})['sentences'][0]['tokens']
         if tok['pos'] in ['NNS','NN'] and len(tok['lemma'])>1]
     
-    except:
+    except Exception as e:
+            print("fallen into Exception")
+            print(str(e))
             print(str(counter.value))
             print(text)
-            print("fallen into Exception")
             pass
     toapp=[]
     for i in range(len(toks)):
@@ -432,6 +433,10 @@ def analyze(originfile, all=False):
                         corpus_tok_reduced=[r for r in corpus_tok if r != None]
                         print("len corpus_tok: " + str(len(corpus_tok)))
                         print("len corpus_tok_reduced: " + str(len(corpus_tok_reduced)))
+                        '''with open('/resources/cleaning_test.csv', mode='a') as file:
+                            writer = csv.writer(file, delimiter='|', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+                            for c in corpus_tok_reduced:
+                                writer.writerow(c)'''
                         corpus_tok_all+=corpus_tok_reduced
                         print("len corpus_tok_all: " + str(len(corpus_tok_all)))
                     '''
