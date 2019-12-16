@@ -47,6 +47,7 @@ def thread_function_row_only_all(row):
     text_bad = row[4].lower()
     toks_bad=[]
     toks_good = []
+    print(str(counter.value))
     counter.value+=1
     if counter.value%10000==0:
         print(str(counter.value))
@@ -415,9 +416,10 @@ def analyze(originfile, all=False):
                     spell = SpellChecker()
                     counter = Value('i', 1)
                     corpus_tok_all=[]
-                    for i in range(8):
-                        offset=i*50000
-                        limit=50000
+                    for i in range(23,40):
+                        print(str(i))
+                        offset=i*10000
+                        limit=10000
                         print("starting reading")
                         print("limit="+str(limit))
                         print("offset="+str(offset))
