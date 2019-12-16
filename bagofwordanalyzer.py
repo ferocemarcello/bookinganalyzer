@@ -47,7 +47,6 @@ def thread_function_row_only_all(row):
     text_bad = row[4].lower()
     toks_bad=[]
     toks_good = []
-    print(str(counter.value))
     counter.value+=1
     if counter.value%10000==0:
         print(str(counter.value))
@@ -142,7 +141,7 @@ def thread_function_row_only_all(row):
 def thread_function_row_only(row):
     text=row[2].lower()
     counter.value+=1
-    if counter.value%10000==0:
+    if counter.value%100==0:
         print(str(counter.value))
     for con in constr_conjs:
         if con in text:
@@ -154,17 +153,10 @@ def thread_function_row_only(row):
         if tok['pos'] in ['NNS','NN'] and len(tok['lemma'])>1]
     
     except:
-            l=[]
-            for sent in sents:
-                try:
-                    v=[spell.correction(tok['lemma']) for tok in
-                             nlp_wrapper.annotate(sent, properties={'annotators': 'lemma, pos', 'outputFormat': 'json', })[
-                                 'sentences'][0]['tokens']
-                             if tok['pos'] in ['NNS', 'NN'] and len(tok['lemma']) > 1]
-                    l.append(v)
-                except Exception as e:
-                    pass
-            toks = list(itertools.chain.from_iterable(l))
+            print(str(counter.value))
+            print(text)
+            print("fallen into Exception")
+            pass
     toapp=[]
     for i in range(len(toks)):
         if '/' in toks[i]:
@@ -416,10 +408,10 @@ def analyze(originfile, all=False):
                     spell = SpellChecker()
                     counter = Value('i', 1)
                     corpus_tok_all=[]
-                    for i in range(23,40):
+                    for i in range(80):
                         print(str(i))
-                        offset=i*10000
-                        limit=10000
+                        offset=i*5000
+                        limit=5000
                         print("starting reading")
                         print("limit="+str(limit))
                         print("offset="+str(offset))
@@ -441,6 +433,7 @@ def analyze(originfile, all=False):
                         print("len corpus_tok: " + str(len(corpus_tok)))
                         print("len corpus_tok_reduced: " + str(len(corpus_tok_reduced)))
                         corpus_tok_all+=corpus_tok_reduced
+                        print("len corpus_tok_all: " + str(len(corpus_tok_all)))
                     '''
                     corpus_tok=[]
                     s=0
