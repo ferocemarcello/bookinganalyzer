@@ -389,10 +389,10 @@ def analyze(originfile, all=False):
                     spell = SpellChecker()
                     counter = Value('i', 1)
                     corpus_tok_all=[]
-                    for i in range(4):
+                    for i in range(8):
                         raw_corpus = helper.getRawCorpus(
                             csv_file=open('resources/csvs/' + keyword + '_' + emotion.lower() + '.csv', mode='r',
-                                          encoding="utf8", newline='\n'), additionaldetails=True, limit=100000, offset=i*100000)
+                                          encoding="utf8", newline='\n'), additionaldetails=True, limit=50000, offset=i*50000)
 
                         #corpus = helper.getCorpusTextFromRaw(raw_corpus)
                         #raw_corpus_half_one = raw_corpus[:int(len(raw_corpus) / 2)]
@@ -404,7 +404,10 @@ def analyze(originfile, all=False):
                         pool.close()
                         print('pool join')
                         pool.join()
-                        corpus_tok_all+=[r for r in corpus_tok if r != None]
+                        corpus_tok_reduced=[r for r in corpus_tok if r != None]
+                        print("len corpus_tok: " + str(len(corpus_tok)))
+                        print("len corpus_tok_reduced: " + str(len(corpus_tok_reduced)))
+                        corpus_tok_all+=corpus_tok_reduced
                     '''
                     corpus_tok=[]
                     s=0
@@ -441,6 +444,7 @@ def analyze(originfile, all=False):
                             corpus_tok.append(toks)'''
                     #print("beginning removal of sents with contrast")
                     corpus_tok=corpus_tok_all
+                    print("len corpus_tok: " + str(len(corpus_tok)))
                     ###############################################################################
                     # We find bigrams in the documents. Bigrams are sets of two adjacent words.
                     # Using bigrams we can get phrases like "machine_learning" in our output
@@ -457,7 +461,6 @@ def analyze(originfile, all=False):
                     #
                     # Compute bigrams.
                     if len(corpus_tok)>0:
-                        print("len corpus_tok: "+str(len(corpus_tok)))
                         corpustokonly=[r[1] for r in corpus_tok]
                         print("doing bigrams")
                         # Add bigrams and trigrams to docs (only ones that appear 10 times or more).
