@@ -103,13 +103,24 @@ def thread_function_row_only_all(row):
         acc = identifier.classify(text_bad)[1]
         if lan == 'en' and acc >= 0.9:
             sents = sent_tokenize(text_bad)
-            toks_bad = list(itertools.chain.from_iterable([[spell.correction(tok['lemma']) for tok in
-                                                             nlp_wrapper.annotate(sent,
-                                                                                  properties={'annotators': 'lemma, pos',
-                                                                                              'outputFormat': 'json', })[
-                                                                 'sentences'][0]['tokens']
-                                                             if tok['pos'] in ['NNS', 'NN'] and len(tok['lemma']) > 1] for
-                                                            sent in sents]))
+            try:
+
+                toks_bad = list(itertools.chain.from_iterable([[spell.correction(tok['lemma']) for tok in
+                             nlp_wrapper.annotate(sent, properties={'annotators': 'lemma, pos', 'outputFormat': 'json', })[
+                                 'sentences'][0]['tokens']
+                             if tok['pos'] in ['NNS', 'NN'] and len(tok['lemma']) > 1] for sent in sents]))
+            except:
+                l=[]
+                for sent in sents:
+                    try:
+                        v=[spell.correction(tok['lemma']) for tok in
+                                 nlp_wrapper.annotate(sent, properties={'annotators': 'lemma, pos', 'outputFormat': 'json', })[
+                                     'sentences'][0]['tokens']
+                                 if tok['pos'] in ['NNS', 'NN'] and len(tok['lemma']) > 1]
+                        l.append(v)
+                    except Exception as e:
+                        pass
+                toks_bad = list(itertools.chain.from_iterable(l))
             toapp = []
             for i in range(len(toks_bad)):
                 if '/' in toks_bad[i]:
@@ -135,9 +146,24 @@ def thread_function_row_only(row):
     for con in constr_conjs:
         if con in text:
             return None
-    toks=[spell.correction(tok['lemma']) for tok in
-    nlp_wrapper.annotate(text,properties={'annotators': 'lemma, pos','outputFormat': 'json',})['sentences'][0]['tokens']
-    if tok['pos'] in ['NNS','NN'] and len(tok['lemma'])>1]
+    try:
+
+        toks=[spell.correction(tok['lemma']) for tok in
+        nlp_wrapper.annotate(text,properties={'annotators': 'lemma, pos','outputFormat': 'json',})['sentences'][0]['tokens']
+        if tok['pos'] in ['NNS','NN'] and len(tok['lemma'])>1]
+    
+    except:
+            l=[]
+            for sent in sents:
+                try:
+                    v=[spell.correction(tok['lemma']) for tok in
+                             nlp_wrapper.annotate(sent, properties={'annotators': 'lemma, pos', 'outputFormat': 'json', })[
+                                 'sentences'][0]['tokens']
+                             if tok['pos'] in ['NNS', 'NN'] and len(tok['lemma']) > 1]
+                    l.append(v)
+                except Exception as e:
+                    pass
+            toks = list(itertools.chain.from_iterable(l))
     toapp=[]
     for i in range(len(toks)):
         if '/' in toks[i]:
@@ -393,8 +419,8 @@ def analyze(originfile, all=False):
                         offset=i*50000
                         limit=50000
                         print("starting reading")
-                        print("limit="+limit)
-                        print("offset="+)
+                        print("limit="+str(limit))
+                        print("offset="+str(offset))
                         raw_corpus = helper.getRawCorpus(
                             csv_file=open('resources/csvs/' + keyword + '_' + emotion.lower() + '.csv', mode='r',
                                           encoding="utf8", newline='\n'), additionaldetails=True, limit=limit, offset=offset)
