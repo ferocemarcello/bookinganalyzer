@@ -390,9 +390,14 @@ def analyze(originfile, all=False):
                     counter = Value('i', 1)
                     corpus_tok_all=[]
                     for i in range(8):
+                        offset=i*50000
+                        limit=50000
+                        print("starting reading")
+                        print("limit="+limit)
+                        print("offset="+)
                         raw_corpus = helper.getRawCorpus(
                             csv_file=open('resources/csvs/' + keyword + '_' + emotion.lower() + '.csv', mode='r',
-                                          encoding="utf8", newline='\n'), additionaldetails=True, limit=50000, offset=i*50000)
+                                          encoding="utf8", newline='\n'), additionaldetails=True, limit=limit, offset=offset)
 
                         #corpus = helper.getCorpusTextFromRaw(raw_corpus)
                         #raw_corpus_half_one = raw_corpus[:int(len(raw_corpus) / 2)]
