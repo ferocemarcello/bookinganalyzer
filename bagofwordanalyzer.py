@@ -12,8 +12,10 @@ from nltk.tokenize import sent_tokenize
 from pycorenlp import StanfordCoreNLP
 from sklearn.feature_extraction.text import TfidfVectorizer
 from langid.langid import LanguageIdentifier, model
+import threading
 import db
 import helper
+import queue
 from nltk.corpus import wordnet
 import gensimldamine
 from nltk.stem.wordnet import WordNetLemmatizer
@@ -21,6 +23,7 @@ from gensim.models import Phrases
 from nltk import word_tokenize
 from spellchecker import SpellChecker
 from multiprocessing import Value
+from multiprocessing import TimeoutError
 identifier = LanguageIdentifier.from_modelstring(model, norm_probs=True)
 from textblob import TextBlob
 negationstopset=set(['aren', 'couldn', 'didn', 'doesn', 'hadn', 'hasn', 'haven', 'isn','mustn', 'nan', 'negative', 'shan', 'shouldn', 'wasn', 'weren', 'won', 'wouldn', "no", "nor", "not"])
@@ -43,8 +46,14 @@ def init_globals(cnt,spl,nlpw):
     spell=spl
     nlp_wrapper=nlpw
 def thread_function_row_only_all(row):
-    text_good=row[3].lower()
-    text_bad = row[4].lower()
+    try:
+        text_good=row[3].lower()
+    except:
+        text_good=''
+    try:
+        text_bad = row[4].lower()
+    except:
+        text_bad=''
     toks_bad=[]
     toks_good = []
     counter.value+=1
@@ -151,12 +160,13 @@ def thread_function_row_only(row):
         toks=[spell.correction(tok['lemma']) for tok in
         nlp_wrapper.annotate(text,properties={'annotators': 'lemma, pos','outputFormat': 'json',})['sentences'][0]['tokens']
         if tok['pos'] in ['NNS','NN'] and len(tok['lemma'])>1]
-    
+
     except Exception as e:
             print("fallen into Exception")
             print(str(e))
             print(str(counter.value))
             print(text)
+            toks=[]
             pass
     toapp=[]
     for i in range(len(toks)):
@@ -190,35 +200,83 @@ def analyze(originfile, all=False):
     print("Number of processors: ", mp.cpu_count())
     if all:
         print("all")
+        if not os.path.isfile('/resources/all_test.csv'):
+            open('./resources/all_test.csv', 'w').close()
         conn = db.db_connection()
         dbo = db.db_operator(conn)
         spell = SpellChecker()
         counter = Value('i', 1)
         corpus_tok_all=[]
-        for i in range(179):
+        for i in range(500,1790):
             print('i=' +str(i))
+            print("limit= 10000")
+            print("offset= "+str(10000*i))
             conn.connect()
             query = 'SELECT reviews.ReviewID, reviews.Country as \'Tourist_Country\', ' \
                     'hotels.CountryID as \'Hotel Country\', Good, reviews.Bad ' \
                     'FROM masterthesis.reviews, masterthesis.hotels ' \
-                    'where hotels.HotelNumber=reviews.HotelNumber limit 100000 offset '+str(100000*i)+';'
+                    'where hotels.HotelNumber=reviews.HotelNumber limit 10000 offset '+str(10000*i)+';'
             results = [list(x) for x in dbo.execute(query)];
             conn.disconnect()
             print("got results from sql")
             print("starting analysis")
             print("tot number rows= " + str(len(results)))
-            pool = mp.Pool(initializer=init_globals, processes=mp.cpu_count() * 2,
-                           initargs=(counter, spell, nlp_wrapper,), )
-            corpus_tok = pool.map_async(thread_function_row_only_all, [doc for doc in results]).get()
-            print('pool close')
-            pool.close()
-            print('pool join')
-            pool.join()
+            try:
+                print('analyzing 10000 rows '+time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()))
+                pool = mp.Pool(initializer=init_globals, processes=mp.cpu_count() * 2,initargs=(counter, spell, nlp_wrapper,), )
+                corpus_tok = pool.map_async(thread_function_row_only_all, [doc for doc in results]).get(timeout=1200)
+                pool.close()
+                pool.terminate()
+                pool.join()
+                print('got corpus_tok for 10000 rows '+time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()))
+            except TimeoutError:
+                print("timeout error")
+                pool.close()
+                pool.terminate()
+                pool.join()
+                corpus_tok=[]
+                for doc in results:
+                    try:
+                        pool = mp.Pool(initializer=init_globals, processes=mp.cpu_count() * 2, initargs=(counter,spell,nlp_wrapper,), )
+                        c=pool.map_async(thread_function_row_only_all, [doc]).get(timeout=60)
+                        #print('pool close')
+                        pool.close()
+                        pool.terminate()
+                        #print('pool join')
+                        pool.join()
+                        '''thread = threading.Thread(target = thread_function_row_only, args = (doc))
+                        thread.start()
+                        thread.join()
+                        c=que.get()'''
+                    except TimeoutError:
+                        print(str(doc)+" caused Exception")
+                        pool.close()
+                        pool.terminate()
+                        #print('pool join')
+                        pool.join()
+                        c=[None]
+                    corpus_tok.append(c[0])
             print("beginning removal of sents with contrast")
             corpus_tok = [r for r in corpus_tok if r != None]
             print('len corpus_tok_reduced= '+str(len(corpus_tok)))
             corpus_tok_all+=corpus_tok
             print('len corpus_tok_all= ' + str(len(corpus_tok_all)))
+            if i%100==0 and i!=0:
+                with open('./resources/all_test.csv', mode='a') as file:
+                    writer = csv.writer(file, delimiter='|', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+                    for c in corpus_tok_all:
+                        writer.writerow(c)
+                file.close()
+                corpus_tok_all=[]
+
+        with open('./resources/all_test.csv', mode='a') as file:
+            writer = csv.writer(file, delimiter='|', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+            for c in corpus_tok_all:
+                writer.writerow(c)
+        file.close()
+        corpus_tok_all=[]
+
+
         corpus_tok=corpus_tok_all
         corpustokonly = [r[1] for r in corpus_tok]
         print("doing bigrams")
@@ -409,10 +467,12 @@ def analyze(originfile, all=False):
                     spell = SpellChecker()
                     counter = Value('i', 1)
                     corpus_tok_all=[]
-                    for i in range(80):
+                    if not os.path.isfile('/resources/cleaning_test.csv'):
+                        open('./resources/cleaning_test.csv', 'w').close()
+                    for i in range(400):
                         print(str(i))
-                        offset=i*5000
-                        limit=5000
+                        offset=i*1000
+                        limit=1000
                         print("starting reading")
                         print("limit="+str(limit))
                         print("offset="+str(offset))
@@ -425,18 +485,43 @@ def analyze(originfile, all=False):
                         #raw_corpus_half_two=raw_corpus[int(len(raw_corpus)/2):]
                         print("starting analysis")
                         pool = mp.Pool(initializer=init_globals, processes=mp.cpu_count() * 2, initargs=(counter,spell,nlp_wrapper,), )
-                        corpus_tok = pool.map_async(thread_function_row_only, [doc for doc in raw_corpus]).get()
-                        print('pool close')
-                        pool.close()
-                        print('pool join')
-                        pool.join()
+                        try:
+                            corpus_tok = pool.map_async(thread_function_row_only, [doc for doc in raw_corpus]).get(timeout=30)
+                            pool.close()
+                            pool.join()
+                        except TimeoutError:
+                            print("timeout error")
+                            print('pool close')
+                            pool.close()
+                            print('pool terminate')
+                            pool.terminate()
+                            print('pool join')
+                            pool.join()
+                            corpus_tok=[]
+                            for doc in raw_corpus:
+                                try:
+                                    pool = mp.Pool(initializer=init_globals, processes=mp.cpu_count() * 2, initargs=(counter,spell,nlp_wrapper,), )
+                                    c=pool.map_async(thread_function_row_only, [doc]).get(timeout=30)
+                                    #print('pool close')
+                                    pool.close()
+                                    #print('pool join')
+                                    pool.join()
+                                    '''thread = threading.Thread(target = thread_function_row_only, args = (doc))
+                                    thread.start()
+                                    thread.join()
+                                    c=que.get()'''
+                                except TimeoutError:
+                                    print(str(doc)+" caused Exception")
+                                    c=[None]
+                                corpus_tok.append(c[0])
                         corpus_tok_reduced=[r for r in corpus_tok if r != None]
                         print("len corpus_tok: " + str(len(corpus_tok)))
                         print("len corpus_tok_reduced: " + str(len(corpus_tok_reduced)))
-                        '''with open('/resources/cleaning_test.csv', mode='a') as file:
+                        '''with open('./resources/cleaning_test.csv', mode='a') as file:
                             writer = csv.writer(file, delimiter='|', quotechar='"', quoting=csv.QUOTE_MINIMAL)
                             for c in corpus_tok_reduced:
-                                writer.writerow(c)'''
+                                writer.writerow(c)
+                        file.close()'''
                         corpus_tok_all+=corpus_tok_reduced
                         print("len corpus_tok_all: " + str(len(corpus_tok_all)))
                     '''
