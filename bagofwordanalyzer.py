@@ -201,13 +201,14 @@ def analyze(originfile, all=False):
     if all:
         print("all")
         if not os.path.isfile('/resources/all_test.csv'):
+            print("test file created")
             open('./resources/all_test.csv', 'w').close()
         conn = db.db_connection()
         dbo = db.db_operator(conn)
         spell = SpellChecker()
         counter = Value('i', 1)
         corpus_tok_all=[]
-        for i in range(500,1790):
+        for i in range(1790):
             print('i=' +str(i))
             print("limit= 10000")
             print("offset= "+str(10000*i))
@@ -269,16 +270,19 @@ def analyze(originfile, all=False):
                 file.close()
                 corpus_tok_all=[]
 
-        with open('./resources/all_test.csv', mode='a') as file:
-            writer = csv.writer(file, delimiter='|', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-            for c in corpus_tok_all:
-                writer.writerow(c)
+        corpus_tok_all=set()
+        i=0
+        with open('./resources/all_test.csv', mode='r') as file:
+            reader = csv.reader(file, delimiter='|', quotechar='"')
+            for row in reader:
+                i+=1
+                corpus_tok_all.add(row)
         file.close()
-        corpus_tok_all=[]
-
-
-        corpus_tok=corpus_tok_all
+        print(i)
+        print(len(corpus_tok_all))
+        corpus_tok=list(corpus_tok_all)
         corpustokonly = [r[1] for r in corpus_tok]
+        #time.sleep(600)  
         print("doing bigrams")
         # Add bigrams and trigrams to docs (only ones that appear 10 times or more).
         bigram = Phrases(corpustokonly, min_count=0.001 * len(corpus_tok))
