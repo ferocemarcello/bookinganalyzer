@@ -28,7 +28,7 @@ if __name__ == '__main__':
     #gensimldamine.do('booking_keywords.txt')
     #printtopicsforsentences.saveweightedtopspersent('booking_keywords.txt')
     #topicscoreanalyzer.dividebynation('booking_keywords.txt')
-    bagofwordanalyzer.analyze('booking_keywords.txt', all=True)
+    #bagofwordanalyzer.analyze('booking_keywords.txt', all=True)
     #bagofwordanalyzer.analyze('booking_keywords.txt', all=False)
     #bow_cluster_nation.do('booking_keywords.txt')
     #bow_cluster_country_tourist_hotel.do('booking_keywords.txt',all=False)
@@ -37,7 +37,7 @@ if __name__ == '__main__':
     #frequence_difference_bow_creator.do('booking_keywords.txt', all=False,common_tokens=False)
     #frequence_difference_bow_creator.do('booking_keywords.txt', all=True, common_tokens=False)
     #frequence_difference_bow_creator.filter('booking_keywords.txt')
-    #frequence_difference_bow_creator.filterallsep('booking_keywords.txt')
+    frequence_difference_bow_creator.filterallsep('booking_keywords.txt',toptokens=True)
     #frequence_difference_bow_creator.build_association_count_list('booking_keywords.txt')
 
     '''for t in ['tfidf','tf']:

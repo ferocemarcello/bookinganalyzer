@@ -29,22 +29,31 @@ def read_table(filepath):
     return cluster_tourist_hotel
 
 
-def get_diff_table(good_table, bad_table, tokenset,common_tokens=True):
+def get_diff_table(good_table, bad_table, tokenset,common_tokens=True,topntokens=-1):
     diff_table={}
     if common_tokens:
-        for countries in bad_table.keys():
-            if countries in good_table.keys():
-                diff_table[countries] = {}
-                diff_table[countries]['tokens'] = {}
-                diff_table[countries]['unique_reviews']=bad_table[countries]['unique_reviews'].union(good_table[countries]['unique_reviews'])
-                diff_table[countries]['count_rev']=len(list(diff_table[countries]['unique_reviews']))
-                for tok in bad_table[countries]['tokens'].keys():
-                    if tok in good_table[countries]['tokens'].keys():
-                        tokenset.add(tok)
-                        diff_table[countries]['tokens'][tok] = {}
-                        diff_table[countries]['tokens'][tok]['good'] = good_table[countries]['tokens'][tok]
-                        diff_table[countries]['tokens'][tok]['bad'] = bad_table[countries]['tokens'][tok]
-                        diff_table[countries]['tokens'][tok]['diff'] = good_table[countries]['tokens'][tok]-bad_table[countries]['tokens'][tok]
+        examplecountrygood = list(good_table.keys())[0]
+        examplecountrybad = list(bad_table.keys())[0]
+        intersectioncountries=set.intersection(set(bad_table.keys()),set(good_table.keys()))
+        if topntokens>0:
+            topntokensgood=list(good_table[examplecountrygood]['tokens'].keys())[:topntokens]
+            topntokensbad = list(bad_table[examplecountrybad]['tokens'].keys())[:topntokens]
+        else:
+            topntokensgood = good_table[examplecountrygood]['tokens'].keys()
+            topntokensbad = bad_table[examplecountrybad]['tokens'].keys()
+        intersectiontokens = set.intersection(set(topntokensgood), set(topntokensbad))
+        for countries in intersectioncountries:
+            diff_table[countries] = {}
+            diff_table[countries]['tokens'] = {}
+            diff_table[countries]['unique_reviews']=bad_table[countries]['unique_reviews'].union(good_table[countries]['unique_reviews'])
+            diff_table[countries]['count_rev']=len(list(diff_table[countries]['unique_reviews']))
+            for tok in intersectiontokens:
+                if topntokens<0:
+                    tokenset.add(tok)
+                diff_table[countries]['tokens'][tok] = {}
+                diff_table[countries]['tokens'][tok]['good'] = good_table[countries]['tokens'][tok]
+                diff_table[countries]['tokens'][tok]['bad'] = bad_table[countries]['tokens'][tok]
+                diff_table[countries]['tokens'][tok]['diff'] = good_table[countries]['tokens'][tok]-bad_table[countries]['tokens'][tok]
     else:
         allcountries = set(good_table.keys()).union(set(bad_table.keys()))
         for countries in allcountries:
@@ -77,7 +86,6 @@ def get_diff_table(good_table, bad_table, tokenset,common_tokens=True):
                     diff_table[countries]['tokens'][tok]['good'] = 'N/A'
                     diff_table[countries]['tokens'][tok]['diff'] = 0.0-bad_table[countries]['tokens'][tok]
     return diff_table
-
 
 def do(originfile, all=False, common_tokens=True):
     if all:
@@ -118,6 +126,7 @@ def do(originfile, all=False, common_tokens=True):
         keywords = helper.getKeywords(originfile)
         tokenset = set()
         diff_tables={}
+        diff_tables_topntokens={}
         validkeywords=[]
         for keyword in keywords.keys():
             start_time = time.time()
@@ -130,13 +139,19 @@ def do(originfile, all=False, common_tokens=True):
                 goforward = False
             if goforward:
                 validkeywords.append(keyword)
-                diff_table=get_diff_table(good_tab,bad_table,tokenset,common_tokens=common_tokens)
-                diff_tables[keyword]=diff_table
+                #diff_table = get_diff_table(good_tab, bad_table, tokenset, common_tokens=common_tokens)
+                diff_tables_topntokens[keyword]={}
+                #diff_tables[keyword] = diff_table
+                for topntokens in range(10, 51):
+                    diff_table_topntokens = get_diff_table(good_tab, bad_table, tokenset, common_tokens=True, topntokens=topntokens)
+                    diff_tables_topntokens[keyword][topntokens] =diff_table_topntokens
             print('------------------------------------------------------')
             print(str(time.time() - start_time) + ' seconds to build the difference table for ' + keyword)
         print("start writing difference matrices")
-        indexmanager.build_token_index(tokenset)
+        #indexmanager.build_token_index(tokenset)
         token_index=indexmanager.get_token_index()
+        if not os.path.exists('resources/bow/tourist_hotel_country_freq/diff/topntokens/'):
+            os.makedirs('resources/bow/tourist_hotel_country_freq/diff/topntokens/')
         for keyword in validkeywords:
             start_time = time.time()
             print(keyword + ' ---- ' + time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()))
@@ -144,7 +159,10 @@ def do(originfile, all=False, common_tokens=True):
             country_ind = indexmanager.get_hotel_country_index()
             if not os.path.exists('resources/bow/tourist_hotel_country_freq/diff/'):
                 os.makedirs('resources/bow/tourist_hotel_country_freq/diff/')
-            with open('resources/bow/tourist_hotel_country_freq/diff/' + keyword + '.csv',
+            if not os.path.exists('resources/bow/tourist_hotel_country_freq/diff/topntokens/'+keyword+'/'):
+                os.makedirs('resources/bow/tourist_hotel_country_freq/diff/topntokens/'+keyword+'/')
+
+            '''with open('resources/bow/tourist_hotel_country_freq/diff/' + keyword + '.csv',
                       mode='w') as file:
                 writer = csv.writer(file, delimiter='|', quotechar='"',
                                     quoting=csv.QUOTE_MINIMAL)
@@ -166,7 +184,33 @@ def do(originfile, all=False, common_tokens=True):
                                          badval,
                                          "{:.15f}".format(diff_tables[keyword][countries]['tokens'][tok]['diff'])])
 
-            file.close()
+            file.close()'''
+            for topntokens in diff_tables_topntokens[keyword].keys():
+
+                with open('resources/bow/tourist_hotel_country_freq/diff/topntokens/' + keyword + '/'+ keyword +'_top_'+str(topntokens)+'_tokens.csv',
+                          mode='w') as file:
+                    writer = csv.writer(file, delimiter='|', quotechar='"',
+                                        quoting=csv.QUOTE_MINIMAL)
+                    writer.writerow(['Tourist_Country_Index', 'Tourist_Country', 'Hotel_Country_Index', 'Hotel_Country',
+                                     'Total number of unique reviews', 'Token_Index', 'Token', 'Token_Frequence_in_Good',
+                                     'Token_Frequence_in_Bad', 'Difference'])
+                    for countries in diff_tables_topntokens[keyword][topntokens].keys():
+                        for tok in diff_tables_topntokens[keyword][topntokens][countries]['tokens'].keys():
+                            goodval=diff_tables_topntokens[keyword][topntokens][countries]['tokens'][tok]['good']
+                            if goodval!='N/A':
+                                goodval="{:.15f}".format(goodval)
+                            badval = diff_tables_topntokens[keyword][topntokens][countries]['tokens'][tok]['bad']
+                            if badval != 'N/A':
+                                badval = "{:.15f}".format(badval)
+                            writer.writerow([country_ind['country_to_index'][countries[0]], countries[0],
+                                             country_ind['country_to_index'][countries[1]], countries[1],
+                                             diff_tables_topntokens[keyword][topntokens][countries]['count_rev'], token_index['token_to_index'][tok], tok,
+                                             goodval,
+                                             badval,
+                                             "{:.15f}".format(diff_tables_topntokens[keyword][topntokens][countries]['tokens'][tok]['diff'])])
+
+                file.close()
+
             print(str(time.time() - start_time) + ' seconds to write the difference matrix for ' + keyword)
 def filter(originfile):
     keywords = helper.getKeywords(originfile)
@@ -479,88 +523,147 @@ def build_association_count_list(originfile):
     file.writelines(lines_reduced)
     file.close()
 
-def filterallsep(originfile):
+def filterallsep(originfile,toptokens=False):
     keywords = helper.getKeywords(originfile)
     old_cont_index = indexmanager.get_hotel_country_index()
     old_tok_index = indexmanager.get_token_index()
-    for keyword in list(keywords.keys())+['all']:
-        try:
-            combs=dict()
-            origins_to_dect = dict()
-            goforward=True
+    if toptokens:
+        for keyword in list(keywords.keys()) + ['all']:
             start_time = time.time()
-            lines = []
-            tokens = set()
-            if keyword=='all':
-                frequencecell=7
+            if keyword == 'all':
+                frequencecell = 7
             else:
-                frequencecell=9
-            with open('resources/bow/tourist_hotel_country_freq/diff/' + keyword + '.csv') as csv_file:
-                csv_reader = csv.reader(csv_file, delimiter='|')
-                header=next(csv_reader)
-                for row in csv_reader:
-                    if int(row[4]) >= 0 and row[1] != '' and row[1] != 'no_country' and row[3] != 'no_country':
-                        lines.append([row[0], row[2], row[4], row[5], row[frequencecell]])
-                        if (row[0], row[2]) not in combs.keys():
-                            combs[(row[0], row[2])]=set()
-                        if row[0] not in origins_to_dect.keys():
-                            origins_to_dect[row[0]]=set()
-                        origins_to_dect[row[0]].add(row[2])
-                        combs[(row[0], row[2])].add(row[5])
-                        tokens.add(row[5])
-            #if len(origins_to_dect[x])>=5
-            #print(len([x for x in origins_to_dect.keys()]))
-            csv_file.close()
-        except Exception as e:
-            goforward = False
-        if goforward:
-            countries=set(origins_to_dect.keys()).union(set.union(*[x for x in origins_to_dect.values()]))
-            countries = list(countries)
-            country_index=dict()
-            old_cont_to_new=dict()
-            for i in range(1,len(countries)+1):
-                country_index[i] = old_cont_index['index_to_country'][int(countries[i - 1])]
-                old_cont_to_new[int(countries[i - 1])] = i
-            tokens = list(tokens)
-            token_index = dict()
-            old_tok_to_new = dict()
-            for i in range(1, len(tokens) + 1):
-                token_index[i] = old_tok_index['index_to_token'][int(tokens[i - 1])]
-                old_tok_to_new[int(tokens[i - 1])] = i
-            if not os.path.exists(
-                    'resources/bow/tourist_hotel_country_freq/diff/filtered/all_separetely/'):
-                os.makedirs('resources/bow/tourist_hotel_country_freq/diff/filtered/all_separetely/')
-            with open(
-                    'resources/bow/tourist_hotel_country_freq/diff/filtered/all_separetely/' + keyword + '.csv',
-                    mode='w') as file:
-                writer = csv.writer(file, delimiter='|', quotechar='"',
-                                    quoting=csv.QUOTE_MINIMAL)
-                writer.writerow(
-                    ['country_origin_index', 'country_destination_index', 'number unique reviews', 'token_index', 'frequence_difference'])
-                for line in lines:
-                    newline = [old_cont_to_new[int(line[0])], old_cont_to_new[int(line[1])],int(line[2]),
-                               old_tok_to_new[int(line[3])], line[4]]
-                    writer.writerow(newline)
-            file.close()
-            with open(
-                    'resources/bow/tourist_hotel_country_freq/diff/filtered/all_separetely/' + keyword + '_country_index.csv',
-                    mode='w') as file:
-                writer = csv.writer(file, delimiter='|', quotechar='"',
-                                    quoting=csv.QUOTE_MINIMAL)
-                writer.writerow(
-                    ['country_index', 'country'])
-                for key in country_index.keys():
-                    writer.writerow([key,country_index[key]])
-            file.close()
-            with open(
-                    'resources/bow/tourist_hotel_country_freq/diff/filtered/all_separetely/' + keyword + '_token_index.csv',
-                    mode='w') as file:
-                writer = csv.writer(file, delimiter='|', quotechar='"',
-                                    quoting=csv.QUOTE_MINIMAL)
-                writer.writerow(
-                    ['token_index', 'token'])
-                for key in token_index.keys():
-                    writer.writerow([key,token_index[key]])
-            file.close()
-        print('------------------------------------------------------')
-        print(str(time.time() - start_time) + ' seconds to filter ' + keyword)
+                frequencecell = 9
+            for topn in range(10, 51):
+                goforward = True
+                lines = []
+                tokens=set()
+                try:
+                    with open('resources/bow/tourist_hotel_country_freq/diff/topntokens/'+keyword+'/' + keyword + '_top_'+str(topn)+'_tokens.csv') as csv_file:
+                        csv_reader = csv.reader(csv_file, delimiter='|')
+                        header = next(csv_reader)
+                        for row in csv_reader:
+                            lines.append([row[0], row[2], row[4], row[5], row[frequencecell]])
+                            tokens.add(row[5])
+                    # if len(origins_to_dect[x])>=5
+                    # print(len([x for x in origins_to_dect.keys()]))
+                    csv_file.close()
+                except Exception as e:
+                    goforward = False
+                if goforward:
+                    tokens = list(tokens)
+                    token_index = dict()
+                    old_tok_to_new = dict()
+                    for i in range(1, len(tokens) + 1):
+                        token_index[i] = old_tok_index['index_to_token'][int(tokens[i - 1])]
+                        old_tok_to_new[int(tokens[i - 1])] = i
+                    if not os.path.exists(
+                            'resources/bow/tourist_hotel_country_freq/diff/filtered/all_separetely/topntokens/'+keyword+'/'):
+                        os.makedirs('resources/bow/tourist_hotel_country_freq/diff/filtered/all_separetely/topntokens/'+keyword+'/')
+                    with open(
+                            'resources/bow/tourist_hotel_country_freq/diff/filtered/all_separetely/topntokens/'+keyword+'/' + keyword + '_top_'+str(topn)+'_tokens.csv',
+                            mode='w') as file:
+                        writer = csv.writer(file, delimiter='|', quotechar='"',
+                                            quoting=csv.QUOTE_MINIMAL)
+                        writer.writerow(
+                            ['country_origin_index', 'country_destination_index', 'number unique reviews', 'token_index',
+                             'frequence_difference'])
+                        for line in lines:
+                            newline = [int(line[0]), int(line[1]), int(line[2]), old_tok_to_new[int(line[3])], line[4]]
+                            writer.writerow(newline)
+                    file.close()
+                    with open(
+                            'resources/bow/tourist_hotel_country_freq/diff/filtered/all_separetely/topntokens/'+keyword+'/' + keyword + '_top_'+str(topn)+'_tokens_token_index.csv',
+                            mode='w') as file:
+                        writer = csv.writer(file, delimiter='|', quotechar='"',
+                                            quoting=csv.QUOTE_MINIMAL)
+                        writer.writerow(
+                            ['token_index', 'token'])
+                        for key in token_index.keys():
+                            writer.writerow([key, token_index[key]])
+                    file.close()
+                print('------------------------------------------------------')
+                print(str(time.time() - start_time) + ' seconds to filter ' + keyword+',top '+str(topn)+' tokens')
+    else:
+        for keyword in list(keywords.keys()) + ['all']:
+            try:
+                lines=[]
+                combs = dict()
+                origins_to_dect = dict()
+                goforward = True
+                start_time = time.time()
+                tokens = set()
+                if keyword == 'all':
+                    frequencecell = 7
+                else:
+                    frequencecell = 9
+                with open('resources/bow/tourist_hotel_country_freq/diff/' + keyword + '.csv') as csv_file:
+                    csv_reader = csv.reader(csv_file, delimiter='|')
+                    header = next(csv_reader)
+                    for row in csv_reader:
+                        if int(row[4]) >= 0 and row[1] != '' and row[1] != 'no_country' and row[3] != 'no_country':
+                            lines.append([row[0], row[2], row[4], row[5], row[frequencecell]])
+                            if (row[0], row[2]) not in combs.keys():
+                                combs[(row[0], row[2])] = set()
+                            if row[0] not in origins_to_dect.keys():
+                                origins_to_dect[row[0]] = set()
+                            origins_to_dect[row[0]].add(row[2])
+                            combs[(row[0], row[2])].add(row[5])
+                            tokens.add(row[5])
+                # if len(origins_to_dect[x])>=5
+                # print(len([x for x in origins_to_dect.keys()]))
+                csv_file.close()
+            except Exception as e:
+                goforward = False
+            if goforward:
+                countries = set(origins_to_dect.keys()).union(set.union(*[x for x in origins_to_dect.values()]))
+                countries = list(countries)
+                country_index = dict()
+                old_cont_to_new = dict()
+                for i in range(1, len(countries) + 1):
+                    country_index[i] = old_cont_index['index_to_country'][int(countries[i - 1])]
+                    old_cont_to_new[int(countries[i - 1])] = i
+                tokens = list(tokens)
+                token_index = dict()
+                old_tok_to_new = dict()
+                for i in range(1, len(tokens) + 1):
+                    token_index[i] = old_tok_index['index_to_token'][int(tokens[i - 1])]
+                    old_tok_to_new[int(tokens[i - 1])] = i
+                if not os.path.exists(
+                        'resources/bow/tourist_hotel_country_freq/diff/filtered/all_separetely/'):
+                    os.makedirs('resources/bow/tourist_hotel_country_freq/diff/filtered/all_separetely/')
+                with open(
+                        'resources/bow/tourist_hotel_country_freq/diff/filtered/all_separetely/' + keyword + '.csv',
+                        mode='w') as file:
+                    writer = csv.writer(file, delimiter='|', quotechar='"',
+                                        quoting=csv.QUOTE_MINIMAL)
+                    writer.writerow(
+                        ['country_origin_index', 'country_destination_index', 'number unique reviews', 'token_index',
+                         'frequence_difference'])
+                    for line in lines:
+                        newline = [old_cont_to_new[int(line[0])], old_cont_to_new[int(line[1])], int(line[2]),
+                                   old_tok_to_new[int(line[3])], line[4]]
+                        writer.writerow(newline)
+                file.close()
+                with open(
+                        'resources/bow/tourist_hotel_country_freq/diff/filtered/all_separetely/' + keyword + '_country_index.csv',
+                        mode='w') as file:
+                    writer = csv.writer(file, delimiter='|', quotechar='"',
+                                        quoting=csv.QUOTE_MINIMAL)
+                    writer.writerow(
+                        ['country_index', 'country'])
+                    for key in country_index.keys():
+                        writer.writerow([key, country_index[key]])
+                file.close()
+                with open(
+                        'resources/bow/tourist_hotel_country_freq/diff/filtered/all_separetely/' + keyword + '_token_index.csv',
+                        mode='w') as file:
+                    writer = csv.writer(file, delimiter='|', quotechar='"',
+                                        quoting=csv.QUOTE_MINIMAL)
+                    writer.writerow(
+                        ['token_index', 'token'])
+                    for key in token_index.keys():
+                        writer.writerow([key, token_index[key]])
+                file.close()
+            print('------------------------------------------------------')
+            print(str(time.time() - start_time) + ' seconds to filter ' + keyword)
