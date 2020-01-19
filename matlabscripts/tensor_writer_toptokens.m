@@ -4,15 +4,8 @@ function main(projectpath)
     %/usr/local/MATLAB/R2019b/bin/matlab -nodisplay -nosplash -nodesktop -r "cd('/home/marcelloferoce/Scrivania/matlabscripts'); tensor_writer('/media/marcelloferoce/DATI1/pyCharmWorkspac/bookinganalyzer/');exit"
     %'/media/marcelloferoce/DATI1/pyCharmWorkspac/bookinganalyzer/'
     mkdir ./resources/tensors/toptokens/
-    fid = fopen('./booking_keywords.txt');
-    keywords=[];
-    while 1
-        line_ex = convertCharsToStrings(fgetl(fid));
-        if class(line_ex)~='string'
-            break;
-        end
-        keywords = [keywords line_ex];
-    end
+    %keywords=["breakfast","location","beach","bathroom","bedroom", "internet","parking","air","coffee","transportation","cleaning"];
+    keywords=["parking","air","coffee","transportation","cleaning"];
     nuniquereviews = [90 100];
     for key = keywords
         newdir='./resources/tensors/toptokens/'+key+'/';
@@ -31,7 +24,7 @@ function main(projectpath)
                     disp(size(t));
                     writetable(new_country_origin_index,'./resources/tensors/toptokens/'+key+'/'+key+'_tensor_higher_equal_'+j+'_new_country_origin_index.csv','Delimiter','|','QuoteStrings',true)
                     writetable(new_country_destination_index,'./resources/tensors/toptokens/'+key+'/'+key+'_tensor_higher_equal_'+j+'_new_country_destination_index.csv','Delimiter','|','QuoteStrings',true)
-                    writetable(new_token_index,'./resources/tensors/toptokens/toptokens/'+key+'/'+key+'_tensor_higher_equal_'+j+'_top_'+topn+'_tokens_new_token_index.csv','Delimiter','|','QuoteStrings',true)
+                    writetable(new_token_index,'./resources/tensors/toptokens/'+key+'/'+key+'_tensor_higher_equal_'+j+'_top_'+topn+'_tokens_new_token_index.csv','Delimiter','|','QuoteStrings',true)
                     save(filename, 't');
                 end
             catch e
