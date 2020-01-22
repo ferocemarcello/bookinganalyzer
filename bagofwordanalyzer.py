@@ -276,11 +276,18 @@ def analyze(originfile, all=False):
                 i+=1
                 if i%10000==0:
                     print(i)
-                if i==1000000:break
-                k=int((row[0].split(','))[0][1:])
+                ar=((row[0].replace('[','')).replace(']','')).split(',')
+                ar[1]=(ar[1].replace("'",'')).replace(' ','')
+                ar[2] = (ar[2].replace("'", '')).replace(' ', '')
+                rev=''.join(ar[3:])
+                revlist= ar[:3]
+                revlist.append(rev)
+                tokens = ((((row[1].replace(']', '')).replace('[','')).replace("'",'')).replace(" ",'')).split(',')
+                r=(revlist,tokens)
+                k=ar[0]
                 if k not in kk:
                     kk.add(k)
-                    corpus_tok_all.append(row)
+                    corpus_tok_all.append(r)
         file.close()
         corpus_tok=corpus_tok_all
         corpustokonly = [r[1] for r in corpus_tok] 
@@ -296,10 +303,7 @@ def analyze(originfile, all=False):
             for token in bigram[corpustokonly[idx]]:
                 if '_' in token:
                     # Token is a bigram, add to document.
-                    try:
-                        corpus_tok[idx][1].append(token)
-                    except Exception as e:
-                        pass
+                    corpus_tok[idx][1].append(token)
         from gensim.corpora import Dictionary
         print("writing frequence file")
         '''all_set=set()
