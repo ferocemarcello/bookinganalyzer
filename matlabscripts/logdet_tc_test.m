@@ -51,7 +51,8 @@ for key=keywords
         Y_tensorT = X;
 
         p = round(sr*prod(Nway));
-        known = randsample(prod(Nway),p); data = Y_tensorT(known);
+        known = randsample(prod(Nway),p);
+        data = Y_tensorT(known);
         [known, id]= sort(known); data= data(id);
         Y_tensor0= zeros(Nway); Y_tensor0(known)= data;
         %imname=[num2str(tensor_num),'_tensor0'];

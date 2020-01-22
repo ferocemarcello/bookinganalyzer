@@ -4,8 +4,7 @@ function main(projectpath)
     %/usr/local/MATLAB/R2019b/bin/matlab -nodisplay -nosplash -nodesktop -r "cd('/home/marcelloferoce/Scrivania/matlabscripts'); tensor_writer('/media/marcelloferoce/DATI1/pyCharmWorkspac/bookinganalyzer/');exit"
     %'/media/marcelloferoce/DATI1/pyCharmWorkspac/bookinganalyzer/'
     mkdir ./resources/tensors/toptokens/
-    %keywords=["breakfast","location","beach","bathroom","bedroom", "internet","parking","air","coffee","transportation","cleaning"];
-    keywords=["parking","air","coffee","transportation","cleaning"];
+    keywords=["breakfast","location","beach","bathroom","bedroom", "internet","parking","air","coffee","transportation","cleaning"];
     nuniquereviews = [90 100];
     for key = keywords
         newdir='./resources/tensors/toptokens/'+key+'/';

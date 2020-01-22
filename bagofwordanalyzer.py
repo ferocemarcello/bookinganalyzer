@@ -200,15 +200,15 @@ def analyze(originfile, all=False):
     print("Number of processors: ", mp.cpu_count())
     if all:
         print("all")
-        if not os.path.isfile('/resources/all_test.csv'):
+        '''if not os.path.isfile('/resources/all_test.csv'):
             print("test file created")
-            open('./resources/all_test.csv', 'w').close()
+            open('./resources/all_test.csv', 'w').close()'''
         conn = db.db_connection()
         dbo = db.db_operator(conn)
         spell = SpellChecker()
         counter = Value('i', 1)
         corpus_tok_all=[]
-        for i in range(1790):
+        '''for i in range(1790):
             print('i=' +str(i))
             print("limit= 10000")
             print("offset= "+str(10000*i))
@@ -245,10 +245,7 @@ def analyze(originfile, all=False):
                         pool.terminate()
                         #print('pool join')
                         pool.join()
-                        '''thread = threading.Thread(target = thread_function_row_only, args = (doc))
-                        thread.start()
-                        thread.join()
-                        c=que.get()'''
+
                     except TimeoutError:
                         print(str(doc)+" caused Exception")
                         pool.close()
@@ -269,28 +266,40 @@ def analyze(originfile, all=False):
                         writer.writerow(c)
                 file.close()
                 corpus_tok_all=[]
-
-        corpus_tok_all=set()
+        '''
+        corpus_tok_all=[]
         i=0
+        kk=set()
         with open('./resources/all_test.csv', mode='r') as file:
             reader = csv.reader(file, delimiter='|', quotechar='"')
             for row in reader:
                 i+=1
-                corpus_tok_all.add(row)
+                if i%10000==0:
+                    print(i)
+                if i==1000000:break
+                k=int((row[0].split(','))[0][1:])
+                if k not in kk:
+                    kk.add(k)
+                    corpus_tok_all.append(row)
         file.close()
-        print(i)
-        print(len(corpus_tok_all))
-        corpus_tok=list(corpus_tok_all)
-        corpustokonly = [r[1] for r in corpus_tok]
-        #time.sleep(600)  
+        corpus_tok=corpus_tok_all
+        corpustokonly = [r[1] for r in corpus_tok] 
         print("doing bigrams")
         # Add bigrams and trigrams to docs (only ones that appear 10 times or more).
         bigram = Phrases(corpustokonly, min_count=0.001 * len(corpus_tok))
-        for idx in range(len(corpus_tok)):
+        lenc=len(corpus_tok)
+        print(lenc)
+        print(corpus_tok[0][1])
+        for idx in range(lenc):
+            if idx%10000==0:
+                print(idx)
             for token in bigram[corpustokonly[idx]]:
                 if '_' in token:
                     # Token is a bigram, add to document.
-                    corpus_tok[idx][1].append(token)
+                    try:
+                        corpus_tok[idx][1].append(token)
+                    except Exception as e:
+                        pass
         from gensim.corpora import Dictionary
         print("writing frequence file")
         '''all_set=set()
@@ -465,15 +474,15 @@ def analyze(originfile, all=False):
         for emotion in ['Good','Bad']:
             print("begin " + emotion)
             for keyword in list(keywords.keys()):
-                if emotion=='Good' and keyword=='cleaning':
+                if emotion=='Good' and keyword=='cleaning':#cleaning good
                     start_time = time.time()
                     print(keyword+' ---- '+time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()))
                     spell = SpellChecker()
                     counter = Value('i', 1)
                     corpus_tok_all=[]
-                    if not os.path.isfile('/resources/cleaning_test.csv'):
-                        open('./resources/cleaning_test.csv', 'w').close()
-                    for i in range(400):
+                    #if not os.path.isfile('/resources/cleaning_test.csv'):
+                        #open('./resources/cleaning_test.csv', 'w').close()
+                    for i in range(400):#400
                         print(str(i))
                         offset=i*1000
                         limit=1000
