@@ -6,11 +6,11 @@ mkdir("./toptokens/ltrctnn/");
 mkdir("./toptokens/bcpf/");
 keywords=["breakfast","location","beach","bathroom","bedroom", "internet","parking","air","coffee","transportation","cleaning"];
 nuniquereviews = [90 100];
-topn=10;
+topn=30;
 %method="halrtc";
-method="logdet";
+%method="logdet";
 %method="ltrctnn";
-%method="bcpf";
+method="bcpf";
 if method=="halrtc"
     tensorcompletedpath=tensorpath+"/toptokens/halrtc/";
     cd("/home/marcelloferoce/Scrivania/matlabscripts/mctc4bmi-master/algs_tc/LRTC/");
@@ -79,9 +79,9 @@ function Xhat=completelogdet(tensor)
         %% Initial data
 
         % normalized data
-        if max(X(:))>1
-        X=X/max(X(:));
-        end
+%         if max(X(:))>1
+%         X=X/max(X(:));
+%         end
 
         Nway=[size(X,1), size(X,2), size(X,3)];
         n1 = size(X,1); n2 = size(X,2); 
@@ -94,7 +94,8 @@ function Xhat=completelogdet(tensor)
         data = Y_tensorT(known);
         [known, id]= sort(known);
         data= data(id);
-        Y_tensor0= zeros(Nway); Y_tensor0(known)= data;
+        Y_tensor0= zeros(Nway);
+        Y_tensor0(known)= data;
         for n = 1:3
             coNway(n) = prod(Nway)/Nway(n);
         end

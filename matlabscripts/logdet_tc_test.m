@@ -1,8 +1,11 @@
 cd("/home/marcelloferoce/Scrivania/matlabscripts")
+%/usr/local/MATLAB/R2019b/bin/matlab -nodisplay -nosplash -nodesktop -r "run('/home/marcelloferoce/Scrivania/matlabscripts/logdet_tc_test.m');exit;"
 keywords=["breakfast","location","beach","bathroom","bedroom", "internet","parking","air","coffee","transportation","cleaning"];
 nrewiews=[100,90];
 for key=keywords
     for nrew=nrewiews
+        disp(key);
+        disp(nrew);
         cd("/home/marcelloferoce/Scrivania/matlabscripts")
         t=get_tensor("/media/marcelloferoce/DATI1/pyCharmWorkspac/bookinganalyzer/", key,nrew);
         cd("/home/marcelloferoce/Scrivania/matlabscripts/tensor_toolbox");
@@ -32,15 +35,16 @@ for key=keywords
             end
         end
         X=t;
+        known=find(newt~=0);
         %% Set sampling ratio
         sr = 0.5;
 
         %% Initial data
 
         % normalized data
-        if max(X(:))>1
-        X=X/max(X(:));
-        end
+        %if max(X(:))>1
+        %	X=X/max(X(:));
+        %end
 
         Nway=[size(X,1), size(X,2), size(X,3)];
         n1 = size(X,1); n2 = size(X,2); 
@@ -50,11 +54,11 @@ for key=keywords
         R=AdapN_Rank(X,ratio);
         Y_tensorT = X;
 
-        p = round(sr*prod(Nway));
-        known = randsample(prod(Nway),p);
         data = Y_tensorT(known);
-        [known, id]= sort(known); data= data(id);
-        Y_tensor0= zeros(Nway); Y_tensor0(known)= data;
+        [known, id]= sort(known);
+        data= data(id);
+        Y_tensor0= zeros(Nway);
+        Y_tensor0(known)= data;
         %imname=[num2str(tensor_num),'_tensor0'];
         %% Initialization of the factor matrices X and A
         for n = 1:3
@@ -66,7 +70,7 @@ for key=keywords
             X0{i}= rand(coNway(i), R(i));
             A0{i}= rand(R(i),Nway(i));
         end
-        cd("/home/marcelloferoce/Scrivania/matlabscripts/MF_TV-master/");
+        cd("../");
         opts=[];
         opts.maxit=500;
         opts.Ytr= Y_tensorT;
@@ -84,6 +88,7 @@ for key=keywords
 
         [Y_TV, A, X, Out]= LRTC_TV(Y0, data, A0, X0,Y_tensor0, Nway, known, opts, n1, n2);
 
+
         RSE = norm(t(:)-Y_TV(:))/norm(t(:));
         MSE=immse(t,Y_TV);
         MSEref = mean(mean(var(t)));
@@ -91,8 +96,6 @@ for key=keywords
 
         % filename = './resources/tensors/completed/logdet/'+key+'_tensor_higher_equal_'+nrew+'.mat';
         % save(filename, 'Y_TV');
-        disp(key);
-        disp(nrew);
         fprintf('relative recovery error: %.8e\n', RSE);
         fprintf('MSE: %.8e\n', MSE);
         fprintf('Normalized MSE: %.8e\n', NMSE);

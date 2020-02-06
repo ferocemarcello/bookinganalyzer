@@ -45,6 +45,17 @@ def init_globals(cnt,spl,nlpw):
     counter = cnt
     spell=spl
     nlp_wrapper=nlpw
+def init_globals_token_analyzer(cnt,corpustokonly,dictionary,lencorpus,alltok):
+    global counter
+    global ctonly
+    global dic
+    global lencorpu
+    global alltoks
+    counter = cnt
+    ctonly=corpustokonly
+    dic=dictionary
+    lencorpu=lencorpus
+    alltoks=alltok
 def thread_function_row_only_all(row):
     try:
         text_good=row[3].lower()
@@ -147,6 +158,16 @@ def thread_function_row_only_all(row):
     if toks_good+toks_bad==[]:
         return None
     return (row, toks_good + toks_bad)
+def thread_function_row_only_token_analyzer(token):
+    counter.value+=1
+    if counter.value % 1000 == 0:
+        print("analyzing token " + str(counter.value))
+        print(time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()))
+    freqsent = 0
+    for doc in ctonly:
+        if dic.get(token) in doc:
+            freqsent += 1
+    return (token, dic.get(token), alltoks.count(dic.get(token)),alltoks.count(dic.get(token)) / len(alltoks), freqsent, freqsent / lencorpu)
 def thread_function_row_only(row):
     text=row[2].lower()
     counter.value+=1
@@ -267,6 +288,9 @@ def analyze(originfile, all=False):
                 file.close()
                 corpus_tok_all=[]
         '''
+
+
+        '''
         corpus_tok_all=[]
         i=0
         kk=set()
@@ -274,10 +298,16 @@ def analyze(originfile, all=False):
             reader = csv.reader(file, delimiter='|', quotechar='"')
             for row in reader:
                 i+=1
-                if i%10000==0:
+                if i%100000==0:
                     print(i)
+                #if i%10000==0:break
                 ar=((row[0].replace('[','')).replace(']','')).split(',')
-                ar[1]=(ar[1].replace("'",'')).replace(' ','')
+                if ar[1][-1]!="'":#France, Metro.
+                    ar[1]=ar[1]+','+ar[2]
+                    for j in range(2,len(ar)-1):
+                        ar[j]=ar[j+1]
+                    del ar[len(ar)-1]
+                ar[1]=ar[1][2:-1]
                 ar[2] = (ar[2].replace("'", '')).replace(' ', '')
                 rev=''.join(ar[3:])
                 revlist= ar[:3]
@@ -290,22 +320,33 @@ def analyze(originfile, all=False):
                     corpus_tok_all.append(r)
         file.close()
         corpus_tok=corpus_tok_all
-        corpustokonly = [r[1] for r in corpus_tok] 
+        corpustokonly = [r[1] for r in corpus_tok]
         print("doing bigrams")
         # Add bigrams and trigrams to docs (only ones that appear 10 times or more).
         bigram = Phrases(corpustokonly, min_count=0.001 * len(corpus_tok))
         lenc=len(corpus_tok)
-        print(lenc)
-        print(corpus_tok[0][1])
+        print("corpus_tok len = "+str(lenc))
         for idx in range(lenc):
-            if idx%10000==0:
+            if idx%100000==0:
                 print(idx)
+                print(time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()))
             for token in bigram[corpustokonly[idx]]:
                 if '_' in token:
                     # Token is a bigram, add to document.
                     corpus_tok[idx][1].append(token)
+        with open('./resources/corpus_tok_all.csv', mode='w') as file:
+                writer = csv.writer(file, delimiter='|', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+                writer.writerows(corpus_tok)
+        file.close()
+        print("corpus_tok written")
         from gensim.corpora import Dictionary
         print("writing frequence file")
+        '''
+
+        
+
+
+
         '''all_set=set()
         for emotion in ['Good', 'Bad']:
             print("begin " + emotion)
@@ -420,8 +461,11 @@ def analyze(originfile, all=False):
                             toplen - len(corpus_tok[i][0] + corpus_tok[i][1])) + corpus_bow[i])
             file.close()
         '''
+        
+
+
         # Create a dictionary representation of the documents.
-        dictionary = Dictionary(corpustokonly)
+        '''dictionary = Dictionary(corpustokonly)
 
         alltok = []
         freq = []
@@ -430,49 +474,140 @@ def analyze(originfile, all=False):
                 alltok.append(tok)
         lencorpus = len(corpus_tok)
         print("len dictionary = " + str(len(dictionary.keys())))
-        i = 0
-        for t in dictionary:
-            i += 1
-            if i % 1000 == 0:
-                print("analyzing token " + str(i))
-            freqsent = 0
-            for doc in corpustokonly:
-                if dictionary.get(t) in doc:
-                    freqsent += 1
-            freq.append((t, dictionary.get(t), alltok.count(dictionary.get(t)),
-                         alltok.count(dictionary.get(t)) / len(alltok), freqsent, freqsent / lencorpus))
+        time.sleep(100000)
+        counter = Value('i', 0)
+        pool = mp.Pool(initializer=init_globals_token_analyzer, processes=mp.cpu_count(), initargs=(counter,corpustokonly,dictionary,lencorpus,alltok), )
+        print("pool initialized")
+        corpustokonly=None
+        alltok=None
+        del corpustokonly, alltok
+        freq = pool.map_async(thread_function_row_only_token_analyzer, [t for t in dictionary]).get()
+        pool.close()
+        pool.terminate()
+        pool.join()
+        dictionary=None
+        del dictionary
+        global ctonly, dic, alltoks
+        ctonly=None
+        dic=None
+        alltoks=None
+        del ctonly,dic,alltoks
+        print("frequence list len= "+str(len(freq)))
+        print("frequence list created")
         freq.sort(key=lambda tup: tup[5], reverse=True)
+        print("frequence list sorted")
         for i in range(len(freq)):
+            if i%10000==0:
+                print(i)
+                print(time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()))
             freq[i] = tuple(list(freq[i]) + [i])
+        print("frequence list modified")
         if not os.path.exists('resources/bow/allfreq/stanford/'):
             os.makedirs('resources/bow/allfreq/stanford/')
-        with open('resources/bow/allfreq/stanford/all.txt', 'w') as f:
+        i=0
+        '''
+        '''with open('resources/bow/allfreq/stanford/all.txt', 'w') as f:
             for item in freq:
+                i+=1
+                if i%10000==0:
+                    print(i)
+                    print(time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()))
                 f.write(str(item) + '\n')
-            f.close()
+            f.close()'''
 
+        corpus_tok=[]
+        i=0
+        with open('./resources/corpus_tok_all.csv', mode='r') as file:
+            reader = csv.reader(file, delimiter='|', quotechar='"')
+            for row in reader:
+                i+=1
+                if i%100000==0:
+                    print(i)
+                corpus_tok.append(row)
+        file.close()
+        print("len corpus_tok= "+str(len(corpus_tok)))
+        freq=[]
+        i=0
+        with open('./resources/bow/allfreq/stanford/all.txt', mode='r') as file:
+            reader = csv.reader(file, delimiter='|', quotechar='"')
+            for row in reader:
+                i+=1
+                if i==501:break
+                freq.append(row)
+        file.close()
+        for i in range(len(freq)):
+            freq[i]=freq[i][0]
+            freq[i]=freq[i].replace("'",'')
+            freq[i]=freq[i].replace('"','')
+            freq[i]=freq[i].replace('(','')
+            freq[i]=freq[i].replace(')','')
+            freq[i]=freq[i].replace(' ','')
+            freq[i]=freq[i].split(',')
+            freq[i]=tuple(freq[i])
+        for i in range(len(corpus_tok)):
+            if i%100000==0:
+                print(i)
+            corpus_tok[i][0]=corpus_tok[i][0].replace('[','')
+            corpus_tok[i][0]=corpus_tok[i][0].replace(']','')
+            det=(corpus_tok[i][0].split(','))
+            if 'SÃ£o TomÃ©' in det[1]:#SÃ£o TomÃ© and PrÃ\\\\xadncipe
+                det[1]='  '+'SÃ£o TomÃ© and PrÃ\xadncipe'+' '
+            if det[1][-1]!="'":#France, Metro
+                if 'Ivoire' in det[1]:#Cote d'Ivoire
+                    det[1]=det[1].replace('\\','')
+                    det[2]=det[2][1:]
+                else:
+                    det[1]=det[1]+','+det[2]
+                    for j in range(2,len(det)-1):
+                        det[j]=det[j+1]
+                    del det[len(det)-1]
+            det=det[:3]
+            desc=(corpus_tok[i][0].split(','))[-1]
+            det[0]=det[0][1:-1]
+            det[1]=det[1][2:-1]
+            det[2]=det[2][2:-1]
+            desc=desc[3:-1]
+            det.append(desc)
+            corpus_tok[i][0]=det
+            corpus_tok[i][1]=corpus_tok[i][1].replace("'",'')
+            corpus_tok[i][1]=corpus_tok[i][1].replace(' ','')
+            corpus_tok[i][1]=corpus_tok[i][1].replace('[','')
+            corpus_tok[i][1]=corpus_tok[i][1].replace(']','')
+            corpus_tok[i][1]=corpus_tok[i][1].split(',')
         print("writing bow file")
-        top_tokens = [f[1] for f in freq[:500]]
+        top_tokens = [f[1] for f in freq[:400]]
         lentoptok = len(top_tokens)
         corpus_bow = {}
         toplen = 0
+        print("corpus_tok_len= "+str(len(corpus_tok)))
         for i in range(len(corpus_tok)):
             corpus_bow[i] = [0] * lentoptok
+            if i%100000==0:
+                print(i)
+                print(time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()))
             if len(corpus_tok[i][0] + corpus_tok[i][1]) > toplen:
                 toplen = len(corpus_tok[i][0] + corpus_tok[i][1])
             for tok in corpus_tok[i][1]:
                 if tok in top_tokens:
                     corpus_bow[i][top_tokens.index(tok)] = 1
-
+        print("len corpus_bow keys= "+str(len(corpus_bow.keys())))
+        print("got corpus_bow")
+        j=0
+        print("corpus_bow_len "+str(len(corpus_bow)))
         with open('resources/bow/all.csv', mode='w') as file:
             writer = csv.writer(file, delimiter='|', quotechar='"',
                                 quoting=csv.QUOTE_MINIMAL)
             writer.writerow([''] * toplen + top_tokens)
             for i in corpus_bow.keys():
+                j+=1
+                if j%100000==0:
+                    print(j)
+                    print(time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()))
                 writer.writerow(
                     corpus_tok[i][0] + corpus_tok[i][1] + [''] * (toplen - len(corpus_tok[i][0] + corpus_tok[i][1])) +
                     corpus_bow[i])
         file.close()
+        print("over")
     else:
         print("not all")
         for emotion in ['Good','Bad']:

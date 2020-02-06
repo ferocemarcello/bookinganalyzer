@@ -96,7 +96,7 @@ for j = 1:I,  Vhat(:,:,j) = W * diag(Q(j,:)) * H'; end
 %Main loop
 %-----------------------------------
 str=[];
-disp('NTF model estimation');
+%disp('NTF model estimation');
 for it = 1:nIter
     %display
     fprintf(repmat('\b',1,length(str)));
@@ -183,4 +183,4 @@ for it = 1:nIter
     end
 end
 
-disp('   done.')
+%disp('   done.')

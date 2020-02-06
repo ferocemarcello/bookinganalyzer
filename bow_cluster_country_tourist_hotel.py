@@ -44,19 +44,34 @@ def cluster(csv_reader):
 def cluster_all(csv_reader):
     firstrow = next(csv_reader)
     maxlentokens = firstrow.count('')
-    firstrow = firstrow[maxlentokens:]
+    firstrow = firstrow[maxlentokens-1:]
     cluster_tourist_hotel = {}
     country_hotel_code = get_country_to_code()
+    i=0
     for row in csv_reader:
+        i+=1
+        if i%100000==0:
+            print(i)
+            print(time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()))
         id=row[0]
         country_hot=row[2]
         if row[1] == '':
             country_tour='no_country'
         else:
-            country_tour = country_hotel_code[row[1]]
+            try:
+                country_tour = country_hotel_code[row[1]]
+            except:
+                country_hot=((row[1].split(','))[1])[-2:]
+                row[1]='SÃ£o TomÃ© and PrÃ\xadncipe'
+                row.insert(2,country_hot)
+                country_tour = country_hotel_code[row[1]]
         countries=(country_tour,country_hot)
-        values=row[maxlentokens:]
-        values=list(map(int, values))
+        values=row[maxlentokens-1:]
+        try:
+            values=list(map(int, values))
+        except:
+            values=row[maxlentokens:]
+            values=list(map(int, values))
         if countries not in cluster_tourist_hotel.keys():
             cluster_tourist_hotel[countries]={}
             cluster_tourist_hotel[countries]['sum']=[0]*len(values)#sum calculated on the sentences
@@ -84,11 +99,13 @@ def do(originfile, all=False):
         csv_file.close()
         if not os.path.exists('resources/bow/tourist_hotel_country_freq/'):
             os.makedirs('resources/bow/tourist_hotel_country_freq/')
+        print("got cluster of all, start writing")
         with open('resources/bow/tourist_hotel_country_freq/all.csv',
                   mode='w') as file:
             writer = csv.writer(file, delimiter='|', quotechar='"',
                                 quoting=csv.QUOTE_MINIMAL)
             writer.writerow([''] * 2 + ['unique IDs'] + tokens)
+            del tokens
             for country in cluster_tourist_hotel.keys():
                 writer.writerow([country[0], country[1]] + [cluster_tourist_hotel[country]['count_rev']] + list(
                     map("{:.15f}".format, cluster_tourist_hotel[country]['rel_freq'])) + list(
