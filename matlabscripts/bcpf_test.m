@@ -1,4 +1,5 @@
 cd("/home/marcelloferoce/Scrivania/matlabscripts")
+%https://github.com/andrewssobral/mctc4bmi
 keywords=["breakfast","location","beach","bathroom","bedroom", "internet","parking","air","coffee","transportation","cleaning"];
 nrewiews=[100,90];
 for key=keywords

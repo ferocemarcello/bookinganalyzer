@@ -4,12 +4,14 @@ function main()
     concept_table_path='/home/marcelloferoce/Scrivania/all_diff.csv';
     concept = readtable(concept_table_path,'HeaderLines',1);  % skips the first row of data
     concept=removevars(concept,{'Var1','Var3','Var6'});
-    [t,new_country_origin_index,new_country_destination_index,new_token_index]=create_tensor(concept,-1);
-    filename = '/home/marcelloferoce/Scrivania/tensors/all_tensor.mat';
+    disp("getting tensor");
+    [t,new_country_origin_index,new_country_destination_index,new_token_index]=create_tensor(concept,10);
+    disp("got tensor, writing tensor");
+    filename = '/home/marcelloferoce/Scrivania/tensors/all_tensor_higher_equal_10_reviews.mat';
     disp(size(t));
-    writetable(new_country_origin_index,'/home/marcelloferoce/Scrivania/tensors/all_new_country_origin_index.csv','Delimiter','|','QuoteStrings',true)
-    writetable(new_country_destination_index,'/home/marcelloferoce/Scrivania/tensors/all_new_country_destination_index.csv','Delimiter','|','QuoteStrings',true)
-    writetable(new_token_index,'/home/marcelloferoce/Scrivania/tensors/all_tokens_new_token_index.csv','Delimiter','|','QuoteStrings',true)
+    writetable(new_country_origin_index,'/home/marcelloferoce/Scrivania/tensors/all_higher_equal_10_reviews_new_country_origin_index.csv','Delimiter','|','QuoteStrings',true)
+    writetable(new_country_destination_index,'/home/marcelloferoce/Scrivania/tensors/all_higher_equal_10_reviews_new_country_destination_index.csv','Delimiter','|','QuoteStrings',true)
+    writetable(new_token_index,'/home/marcelloferoce/Scrivania/tensors/all_higher_equal_10_reviews_tokens_new_token_index.csv','Delimiter','|','QuoteStrings',true)
     save(filename, 't');
     disp("over");
 end
@@ -18,12 +20,14 @@ function [tensor,new_country_origin_index,new_country_destination_index,new_toke
         toDelete = concept.Var5 < nuniquereviews;
         concept(toDelete,:) = [];
     end
+    disp("deleted low reviews");
     todel=[];
     for i=1:height(concept)
         if isequal(concept.Var4(i),{'no_country'}) | isequal(concept.Var2(i),{'no_country'})
             todel=[todel i];
         end
     end
+    disp("deleted no_country");
     concept(todel,:) = [];
     uniqueorigins=unique(concept(:,1));
     uniquuedestinations=unique(concept(:,2));
@@ -71,6 +75,7 @@ function [tensor,new_country_origin_index,new_country_destination_index,new_toke
         toki=find(new_token_index.token_label==tok);
         token_indices=[token_indices;{toki}];
     end
+    disp("renaming vars");
     concept=removevars(concept,{'Var2','Var4','Var7'});
     concept = addvars(concept,table2array(origin_indices),'Before','Var5');
     concept = addvars(concept,table2array(destination_indices),'Before','Var5');

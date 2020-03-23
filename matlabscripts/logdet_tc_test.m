@@ -1,4 +1,5 @@
 cd("/home/marcelloferoce/Scrivania/matlabscripts")
+%https://github.com/uestctensorgroup/MF_TV
 %/usr/local/MATLAB/R2019b/bin/matlab -nodisplay -nosplash -nodesktop -r "run('/home/marcelloferoce/Scrivania/matlabscripts/logdet_tc_test.m');exit;"
 keywords=["breakfast","location","beach","bathroom","bedroom", "internet","parking","air","coffee","transportation","cleaning"];
 nrewiews=[100,90];
